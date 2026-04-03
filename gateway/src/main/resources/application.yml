@@ -1,0 +1,23 @@
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+
+spring:
+  application:
+    name: gateway
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: api
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+                - RemoveRequestHeader=Cookie

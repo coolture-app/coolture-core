@@ -1,0 +1,33 @@
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8180/realms/coolture-dev
+        registration:
+          keycloak:
+            client-id: coolture-gateway
+            client-secret: jXqoBjd8cihwUF4UzkwzjWy0pMvr69sI
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+              - roles
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: api
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/**
+              filters:
+                - TokenRelay=
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+                - RemoveRequestHeader=Cookie

@@ -1,6 +1,25 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+
 spring:
   application:
     name: rest-api
+
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+storage:
+  s3:
+    endpoint: http://localhost:3900
+    region: garage
+    access-key: GKc058f74075db8051b1884658
+    secret-key: da3762df3a4157a9b41ee8f91a44f99ffd6e159e0e4d6e6abda2b3fbcfb34213
+    bucket-name: media-bucket
 
 management:
   endpoints:
@@ -15,4 +34,7 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-  show-actuator: true
+    oauth:
+      client-id: coolture-swagger
+      client-secret: 8c1cRzrNBPnb8ugAkfKQf4sLoe7rJg2h
+      use-pkce-with-authorization-code-grant: true
