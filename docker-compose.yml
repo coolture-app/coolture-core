@@ -6,6 +6,8 @@ services:
     ports:
       - "${GARAGE_S3_API_HOST_PORT:-3900}:3900"
       - "${GARAGE_ADMIN_HOST_PORT:-3910}:3910"
+    networks:
+      - devnet
     volumes:
       - ./garage/garage.toml:/etc/garage.toml
       - ./garage/data:/var/lib/garage/data
@@ -22,6 +24,8 @@ services:
       - ./garage/garage.toml:/etc/garage.toml:ro
     ports:
       - "${GARAGE_UI_HOST_PORT:-3920}:3909"
+    networks:
+      - devnet
     environment:
       - API_BASE_URL=http://${GARAGE_HOSTNAME:-s3garage}:3910
       - API_ADMIN_KEY=${GARAGE_ADMIN_TOKEN}
@@ -30,6 +34,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.5
+    hostname: ${KEYCLOAK_HOSTNAME:-keycloak}
     env_file: .env
     environment:
       KC_HEALTH_ENABLED: "true"
@@ -39,13 +44,17 @@ services:
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      JAVA_OPTS: "-Dkeycloak.migration.replace-placeholders=true"
       # There is no need for DB setting bcs keycloak uses H2 in dev mode
     volumes:
       - keycloak_data:/opt/keycloak/data
-      # Import realm configuration from local file as read-only
+      - ./keycloak/import:/opt/keycloak/data/import:ro
+      - ./keycloak/export:/tmp/export
     ports:
       - ${KEYCLOAK_PORT:-8180}:8180
       - ${KEYCLOAK_MANAGEMENT_PORT:-8181}:8181
+    networks:
+      - devnet
     healthcheck:
       # Keycloak container does not have any CLI HTTP clients installed:
       # https://www.keycloak.org/observability/health#_healthcheck
@@ -63,7 +72,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
-    command: start-dev
+    command: start-dev --import-realm
 
 volumes:
   keycloak_data:
+
+networks:
+  devnet:
+    driver: bridge
