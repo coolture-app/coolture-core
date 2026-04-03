@@ -1,0 +1,69 @@
+services:
+  s3garage:
+    image: dxflrs/garage:v2.2.0
+    hostname: ${GARAGE_HOSTNAME:-s3garage}
+    restart: unless-stopped
+    ports:
+      - "${GARAGE_S3_API_HOST_PORT:-3900}:3900"
+      - "${GARAGE_ADMIN_HOST_PORT:-3910}:3910"
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml
+      - ./garage/data:/var/lib/garage/data
+      - ./garage/meta:/var/lib/garage/meta
+    environment:
+      - GARAGE_RPC_SECRET=${GARAGE_RPC_SECRET}
+      - GARAGE_ADMIN_TOKEN=${GARAGE_ADMIN_TOKEN}
+      - GARAGE_METRICS_TOKEN=${GARAGE_METRICS_TOKEN}
+
+  s3garage-ui:
+    image: khairul169/garage-webui:latest
+    restart: unless-stopped
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+    ports:
+      - "${GARAGE_UI_HOST_PORT:-3920}:3909"
+    environment:
+      - API_BASE_URL=http://${GARAGE_HOSTNAME:-s3garage}:3910
+      - API_ADMIN_KEY=${GARAGE_ADMIN_TOKEN}
+      - S3_ENDPOINT_URL=http://${GARAGE_HOSTNAME:-s3garage}:3900
+      - S3_REGION=${GARAGE_S3_REGION:-garage}
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5
+    env_file: .env
+    environment:
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true" # Enable non secure HTTP for development
+      KC_HTTP_PORT: ${KEYCLOAK_PORT:-8180}
+      KC_HTTP_MANAGEMENT_PORT: ${KEYCLOAK_MANAGEMENT_PORT:-8181}
+      KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # There is no need for DB setting bcs keycloak uses H2 in dev mode
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      # Import realm configuration from local file as read-only
+    ports:
+      - ${KEYCLOAK_PORT:-8180}:8180
+      - ${KEYCLOAK_MANAGEMENT_PORT:-8181}:8181
+    healthcheck:
+      # Keycloak container does not have any CLI HTTP clients installed:
+      # https://www.keycloak.org/observability/health#_healthcheck
+      # https://stackoverflow.com/questions/58168955/testing-minimal-docker-containers-with-healthcheck/76790330#76790330
+      # https://www.reddit.com/r/KeyCloak/comments/14a5a1y/how_to_enable_healthcheck_on_keycloak_on/
+      test:
+        - "CMD"
+        - "bash"
+        - "-c"
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8181
+          printf 'GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          cat <&3 | grep '200'
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    command: start-dev
+
+volumes:
+  keycloak_data:
