@@ -1,6 +1,6 @@
 package pl.coolture.gateway.config;
 
-import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -11,13 +11,21 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 @Configuration
 public class SecurityConfig {
+  @Value("${GARAGE_BUCKET_NAME:coolture-bucket}")
+  private String bucketName;
+
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) {
-
     http.authorizeHttpRequests(
-            auth -> auth.requestMatchers("/actuator/**").permitAll().anyRequest().authenticated())
+            auth ->
+                auth.requestMatchers("/actuator/**", "/" + bucketName + "/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
         .oauth2Login(Customizer.withDefaults())
         .oauth2Client(Customizer.withDefaults())
         .csrf(AbstractHttpConfigurer::disable)

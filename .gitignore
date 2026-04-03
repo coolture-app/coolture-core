@@ -4,12 +4,6 @@
 # Temporary
 ./tmp/
 
-# Garage S3 Storage
-garage/meta/*
-garage/data/*
-!garage/data/.gitkeep
-!garage/meta/.gitkeep
-
 # Python
 venv
 .venv

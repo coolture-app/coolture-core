@@ -4,14 +4,14 @@ services:
     hostname: ${GARAGE_HOSTNAME:-s3garage}
     restart: unless-stopped
     ports:
-      - "${GARAGE_S3_API_HOST_PORT:-3900}:3900"
+      - "${GARAGE_API_HOST_PORT:-3900}:3900"
       - "${GARAGE_ADMIN_HOST_PORT:-3910}:3910"
     networks:
       - devnet
     volumes:
       - ./garage/garage.toml:/etc/garage.toml
-      - ./garage/data:/var/lib/garage/data
-      - ./garage/meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - garage_meta:/var/lib/garage/meta
     environment:
       - GARAGE_RPC_SECRET=${GARAGE_RPC_SECRET}
       - GARAGE_ADMIN_TOKEN=${GARAGE_ADMIN_TOKEN}
@@ -30,7 +30,26 @@ services:
       - API_BASE_URL=http://${GARAGE_HOSTNAME:-s3garage}:3910
       - API_ADMIN_KEY=${GARAGE_ADMIN_TOKEN}
       - S3_ENDPOINT_URL=http://${GARAGE_HOSTNAME:-s3garage}:3900
-      - S3_REGION=${GARAGE_S3_REGION:-garage}
+      - S3_REGION=${GARAGE_REGION:-garage}
+
+  s3-init:
+    image: docker.io/alpine:3.23
+    depends_on:
+      s3garage:
+        condition: service_started
+    network_mode: service:s3garage
+    pid: service:s3garage
+    volumes:
+      - ./garage/init.sh:/init.sh:ro
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      GARAGE_ACCESS_KEY_ID: ${GARAGE_ACCESS_KEY_ID}
+      GARAGE_ACCESS_KEY_SECRET: ${GARAGE_ACCESS_KEY_SECRET}
+      GARAGE_BUCKET_NAME: ${GARAGE_BUCKET_NAME}
+      GARAGE_KEY_NAME: ${GARAGE_KEY_NAME}
+    restart: on-failure:3
+    entrypoint: ["/bin/sh", "/init.sh"]
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.5
@@ -76,6 +95,8 @@ services:
 
 volumes:
   keycloak_data:
+  garage_data:
+  garage_meta:
 
 networks:
   devnet:

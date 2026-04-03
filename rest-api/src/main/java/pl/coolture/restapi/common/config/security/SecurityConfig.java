@@ -14,33 +14,34 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                 JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+  public SecurityFilterChain securityFilterChain(
+      HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
     return http
-            // disable CSRF bcs this is stateless API
-            .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                            "/actuator/**",
-                            "/swagger-ui/**",
-                            "/swagger-ui.html",
-                            "/api-docs/**",
-                            "/h2-console/**"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
-            )
-            .build();
+        // disable CSRF bcs this is stateless API
+        .csrf(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers(
+                        "/actuator/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/api-docs/**",
+                        "/h2-console/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .oauth2ResourceServer(
+            oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+        .build();
   }
 
   /**
-   * Provides a JwtAuthenticationConverter that delegates authority extraction
-   * Using 'new CooltureJwtAuthConverter()' would break @Value injection inside that converter.
+   * Provides a JwtAuthenticationConverter that delegates authority extraction Using 'new
+   * CooltureJwtAuthConverter()' would break @Value injection inside that converter.
    */
   @Bean
-  public JwtAuthenticationConverter jwtAuthenticationConverter(CooltureJwtAuthConverter authorityConverter) {
+  public JwtAuthenticationConverter jwtAuthenticationConverter(
+      CooltureJwtAuthConverter authorityConverter) {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
     converter.setJwtGrantedAuthoritiesConverter(authorityConverter);
 

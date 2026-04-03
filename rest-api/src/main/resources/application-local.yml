@@ -34,9 +34,6 @@ spring:
     restart:
       enabled: true
 
-
-
-
 logging:
   level:
     root: INFO

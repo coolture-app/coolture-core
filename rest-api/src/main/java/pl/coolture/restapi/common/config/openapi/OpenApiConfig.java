@@ -8,10 +8,9 @@ import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
@@ -21,10 +20,14 @@ public class OpenApiConfig {
     final String keycloakUrl = "http://localhost:8180/realms/coolture-dev/protocol/openid-connect/";
 
     return new OpenAPI()
-        .servers(List.of(
-                new Server().url("http://localhost:8081/api").description("Direct REST API (Resource Server)"),
-                new Server().url("http://localhost:8080/api").description("Via Spring Cloud Gateway (BFF)")
-        ))
+        .servers(
+            List.of(
+                new Server()
+                    .url("http://localhost:8081/api")
+                    .description("Direct REST API (Resource Server)"),
+                new Server()
+                    .url("http://localhost:8080/api")
+                    .description("Via Spring Cloud Gateway (BFF)")))
         .components(
             new Components()
                 .addSecuritySchemes(

@@ -15,11 +15,11 @@ spring:
 
 storage:
   s3:
-    endpoint: http://localhost:3900
+    endpoint: http://localhost:${GARAGE_API_HOST_PORT}
     region: garage
-    access-key: GKc058f74075db8051b1884658
-    secret-key: da3762df3a4157a9b41ee8f91a44f99ffd6e159e0e4d6e6abda2b3fbcfb34213
-    bucket-name: media-bucket
+    access-key: ${GARAGE_ACCESS_KEY_ID}
+    secret-key: ${GARAGE_ACCESS_KEY_SECRET}
+    bucket-name: ${GARAGE_BUCKET_NAME}
 
 management:
   endpoints:
@@ -36,5 +36,5 @@ springdoc:
     path: /swagger-ui.html
     oauth:
       client-id: coolture-swagger
-      client-secret: 8c1cRzrNBPnb8ugAkfKQf4sLoe7rJg2h
+      client-secret: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET}
       use-pkce-with-authorization-code-grant: true

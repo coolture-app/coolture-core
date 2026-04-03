@@ -8,5 +8,4 @@ spring:
 
 env:
   keycloak:
-    client-id: ${KEYCLOAK_CLIENT_ID:coolture-gateway}
-
+    client-id: coolture-gateway
