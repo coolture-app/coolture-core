@@ -93,10 +93,31 @@ services:
       start_period: 10s
     command: start-dev --import-realm
 
+  postgres:
+    image: postgres:18.3-alpine
+    env_file: .env
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-coolture_db}
+    volumes:
+      # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
+    ports:
+      - ${POSTGRES_PORT:-5432}:5432
+    networks:
+      - devnet
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-coolture_db} -h localhost -p 5432" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   keycloak_data:
   garage_data:
   garage_meta:
+  postgres_data:
 
 networks:
   devnet:
