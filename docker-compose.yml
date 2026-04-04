@@ -58,6 +58,7 @@ services:
     environment:
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true" # Enable non secure HTTP for development
+      KC_HOSTNAME: localhost
       KC_HTTP_PORT: ${KEYCLOAK_PORT:-8180}
       KC_HTTP_MANAGEMENT_PORT: ${KEYCLOAK_MANAGEMENT_PORT:-8181}
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
