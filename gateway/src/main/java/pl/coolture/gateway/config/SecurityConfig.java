@@ -32,7 +32,7 @@ public class SecurityConfig {
                                     .authenticated())
             .oauth2Login(oauth2 -> oauth2
                     .successHandler((request, response, authentication) -> {
-                        response.sendRedirect("http://localhost:4200/");
+                        response.sendRedirect("http://localhost:4000/");
                     })
             )
             .oauth2Client(Customizer.withDefaults())
@@ -61,7 +61,8 @@ public class SecurityConfig {
                     "http://localhost:8080", // Spring Cloud Gateway
                     "http://localhost:8180", // Keycloak
                     "http://localhost:8081", // backend
-                    "http://localhost:4200")); // Angular
+                    "http://localhost:4000",   // Angular (Docker)
+                    "http://localhost:4200")); // Angular (local ng serve)
     config.setAllowedHeaders(List.of("*"));
     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 

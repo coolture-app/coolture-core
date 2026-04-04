@@ -29,7 +29,7 @@ spring:
         webmvc:
           routes:
             - id: api
-              uri: http://localhost:8081
+              uri: ${GATEWAY_REST_API_URI:http://localhost:8081}
               predicates:
                 - Path=/api/**
               filters:
