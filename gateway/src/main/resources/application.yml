@@ -9,22 +9,12 @@ spring:
   application:
     name: gateway
 
-  cloud:
-    gateway:
-      server:
-        webmvc:
-          routes:
-            - id: api
-              uri: http://localhost:8081
-              predicates:
-                - Path=/api/**
-              filters:
-                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
-                - RemoveRequestHeader=Cookie
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web: DEBUG
-
-
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: TRACE

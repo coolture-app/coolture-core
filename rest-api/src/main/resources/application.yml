@@ -7,11 +7,8 @@ spring:
   application:
     name: rest-api
 
-  datasource:
-    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:coolture_db}
-    username: ${POSTGRES_USER:admin}
-    password: ${POSTGRES_PASSWORD:admin}
-    driver-class-name: org.postgresql.Driver
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   jpa:
     hibernate:
@@ -25,14 +22,6 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
-
-storage:
-  s3:
-    endpoint: http://localhost:${GARAGE_API_HOST_PORT}
-    region: garage
-    access-key: ${GARAGE_ACCESS_KEY_ID}
-    secret-key: ${GARAGE_ACCESS_KEY_SECRET}
-    bucket-name: ${GARAGE_BUCKET_NAME}
 
 management:
   endpoints:
@@ -48,6 +37,18 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
     oauth:
-      client-id: coolture-swagger
+      client-id: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID}
       client-secret: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET}
       use-pkce-with-authorization-code-grant: true
+
+logging:
+  level:
+    root: INFO
+    web: DEBUG
+    pl.coolture: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: TRACE
+
+env:
+  keycloak:
+    client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}

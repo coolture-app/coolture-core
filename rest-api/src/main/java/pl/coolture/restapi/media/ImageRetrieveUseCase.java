@@ -24,7 +24,12 @@ public class ImageRetrieveUseCase {
 
   private static final Duration URL_EXPIRATION = Duration.ofMinutes(15);
 
-  public List<ImageRetrieveResponse> getImageUrls(List<UUID> ids) {
+  public ImageRetrieveResponse execute(UUID id) {
+    ImageEntity image = imageRepository.findById(id).orElseThrow();
+    return toPresignedUrlResponse(image);
+  }
+
+  public List<ImageRetrieveResponse> execute(List<UUID> ids) {
     List<ImageEntity> images = imageRepository.findAllById(ids);
 
     if (images.size() != ids.size()) {

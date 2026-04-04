@@ -21,7 +21,7 @@ public class ImageUploadUseCase {
   private final S3Properties s3Properties;
   private final ImageRepository imageRepository;
 
-  public ImageUploadResponse uploadImage(MultipartFile file) {
+  public ImageUploadResponse execute(MultipartFile file) {
     validateFile(file);
 
     String s3Key = generateS3Key(file.getOriginalFilename());

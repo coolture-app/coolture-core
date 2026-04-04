@@ -7,7 +7,7 @@ spring:
             issuer-uri: http://localhost:8180/realms/coolture-dev
         registration:
           keycloak:
-            client-id: coolture-gateway
+            client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}
             client-secret: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_basic

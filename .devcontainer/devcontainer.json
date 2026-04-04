@@ -1,0 +1,110 @@
+{
+  "name": "Dev Environment Coolture Backend API",
+
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose-dev.yml"],
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+
+  "forwardPorts": [
+    3900,   // Garage S3 API
+    3910,   // Garage Admin API
+    3920,   // Garage UI
+    5432,   // PostgreSQL
+    8080,   // Gateway
+    8081,   // REST API
+    8180,   // Keycloak Admin Console
+    8181    // Keycloak Management
+  ],
+
+  "portsAttributes": {
+    "3900": {
+      "label": "Garage S3 API",
+      "onAutoForward": "notify"
+    },
+    "3910": {
+      "label": "Garage Admin API",
+      "onAutoForward": "notify"
+    },
+    "3920": {
+      "label": "Garage UI",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Gateway",
+      "onAutoForward": "notify"
+    },
+    "8081": {
+      "label": "REST API",
+      "onAutoForward": "notify"
+    },
+    "8180": {
+      "label": "Keycloak Admin Console",
+      "onAutoForward": "notify"
+    },
+    "8181": {
+      "label": "Keycloak Management",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Enviroment installs
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "jdkDistro": "open",
+      "version": "25",
+      "installMaven": "true",
+      "mavenVersion": "3.9.14"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    }
+  },
+
+  // When Profile Sync in IDE is enabled,
+  // profile extensions & settings
+  // will be automatically installed in the container when you open it
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-boot-dev-pack",
+        "vscjava.vscode-lombok",
+        "ms-azuretools.vscode-docker",
+        "cweijan.vscode-postgresql-client2",
+        "humao.rest-client",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "remote.SSH.defaultExtensionsIfInstalledLocally": [
+          "vscjava.vscode-java-pack",
+          "vmware.vscode-boot-dev-pack",
+          "vscjava.vscode-lombok",
+          "ms-azuretools.vscode-docker",
+          "cweijan.vscode-postgresql-client2",
+          "humao.rest-client",
+          "redhat.vscode-xml",
+          "redhat.vscode-yaml"
+        ],
+        "extensions.verifySignature": false, // fix to install extensions (in new versions of vscode this is problem)
+        "editor.formatOnSave": true,
+        "java.jdt.ls.lombokSupport.enabled": true
+      }
+    }
+  },
+
+  "remoteUser": "root",
+
+  // these are executed from /workspace folder
+  "postCreateCommand": {
+    // Download all Maven dependencies when the container is created
+    "mavenSetupRestApi": "./rest-api/mvnw -f ./rest-api/pom.xml dependency:resolve dependency:resolve-plugins",
+    "mavenSetupGateway": "./gateway/mvnw -f ./gateway/pom.xml dependency:resolve dependency:resolve-plugins",
+//    "npmDependencies": "npm install",
+    "postgresClient": "sudo apt-get update && sudo apt-get install -y postgresql-client"
+  }
+}

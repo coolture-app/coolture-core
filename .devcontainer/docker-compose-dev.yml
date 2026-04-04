@@ -1,0 +1,24 @@
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu24.04
+    # In future it is needed to change that to multiple .env files for each service here
+    # For now, keep all env vars in one file for simplicity
+    env_file: .env
+    environment:
+      # Set Maven cache dir
+      MAVEN_USER_HOME: /root/.m2
+    volumes:
+      - ./:/workspace:cached
+      # Cache Maven dependencies to speed up builds
+      - maven_cache:/root/.m2
+    networks:
+      - devnet
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    command: sleep infinity # Keep the container running
+
+volumes:
+  maven_cache:

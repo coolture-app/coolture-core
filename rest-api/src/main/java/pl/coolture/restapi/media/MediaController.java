@@ -25,12 +25,12 @@ public class MediaController {
 
   @PostMapping(value = "/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ImageUploadResponse getUploadUrl(@RequestParam("file") MultipartFile file) {
-    return imageUploadUseCase.uploadImage(file);
+    return imageUploadUseCase.execute(file);
   }
 
   @PostMapping("/images")
   public ResponseEntity<List<ImageRetrieveResponse>> getImageUrls(@RequestBody List<UUID> ids) {
-    List<ImageRetrieveResponse> responses = imageRetrieveUseCase.getImageUrls(ids);
+    List<ImageRetrieveResponse> responses = imageRetrieveUseCase.execute(ids);
     return ResponseEntity.ok(responses);
   }
 

@@ -1,13 +1,12 @@
 package pl.coolture.restapi.common.config.security;
 
+import java.util.Objects;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 import pl.coolture.restapi.common.exceptions.UnauthenticatedUserException;
-
-import java.util.Objects;
 
 @Component
 public class SecurityUtils {
@@ -30,7 +29,7 @@ public class SecurityUtils {
   public static boolean isCurrentUserAdmin() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth == null) {
-        return false;
+      return false;
     }
     return auth.getAuthorities().stream()
         .anyMatch(granted -> Objects.equals(granted.getAuthority(), "ROLE_COOLTURE_ADMIN"));
