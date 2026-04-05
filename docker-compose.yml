@@ -58,7 +58,8 @@ services:
     environment:
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true" # Enable non secure HTTP for development
-      KC_HOSTNAME: localhost
+      KC_HOSTNAME: ${COOLTURE_PUBLIC_HOST:-localhost}
+      COOLTURE_PUBLIC_HOST: ${COOLTURE_PUBLIC_HOST:-localhost}
       KC_HTTP_PORT: ${KEYCLOAK_PORT:-8180}
       KC_HTTP_MANAGEMENT_PORT: ${KEYCLOAK_MANAGEMENT_PORT:-8181}
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
@@ -85,8 +86,8 @@ services:
         - "bash"
         - "-c"
         - |
-          exec 3<>/dev/tcp/127.0.0.1/8181
-          printf 'GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          exec 3<>/dev/tcp/${KEYCLOAK_HEALTHCHECK_BIND_ADDR:-127.0.0.1}/8181
+          printf 'GET /health HTTP/1.1\r\nHost: ${KEYCLOAK_HEALTHCHECK_HTTP_HOST:-localhost}\r\nConnection: close\r\n\r\n' >&3
           cat <&3 | grep '200'
       interval: 5s
       timeout: 5s
@@ -106,11 +107,11 @@ services:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql
     ports:
-      - 5432:5432
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     networks:
       - devnet
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-coolture_db} -h localhost -p 5432" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-coolture_db} -h ${POSTGRES_HEALTHCHECK_HOST:-localhost} -p 5432" ]
       interval: 10s
       timeout: 5s
       retries: 5

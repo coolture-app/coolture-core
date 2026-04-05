@@ -1,0 +1,51 @@
+# Processed by envsubst (nginx image). Only $GARAGE_BUCKET_NAME is substituted; nginx $vars live in includes/*.conf.
+include /etc/nginx/includes/upgrade-map.conf;
+include /etc/nginx/includes/forwarded-proto-map.conf;
+
+server {
+    listen 80;
+    server_name _;
+
+    client_max_body_size 52m;
+
+    # Browser-visible Keycloak (HTTPS via edge + this proxy); must match gateway COOLTURE_KEYCLOAK_AUTH_BASE
+    location /keycloak/ {
+        include /etc/nginx/includes/keycloak-proxy.conf;
+    }
+
+    location /api/ {
+        proxy_pass http://app:8080;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+
+    location /login {
+        proxy_pass http://app:8080;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+
+    location /oauth2/ {
+        proxy_pass http://app:8080;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+
+    location /user/ {
+        proxy_pass http://app:8080;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+
+    location /actuator/ {
+        proxy_pass http://app:8080;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+
+    location /$GARAGE_BUCKET_NAME/ {
+        proxy_pass http://app:8080;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+
+    location / {
+        proxy_pass http://frontend:4000;
+        include /etc/nginx/includes/websocket-proxy-headers.conf;
+        include /etc/nginx/includes/proxy-forward.conf;
+    }
+}

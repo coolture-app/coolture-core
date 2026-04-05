@@ -2,8 +2,11 @@ package pl.coolture.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import pl.coolture.gateway.config.CooltureGatewayProperties;
 
 @SpringBootApplication
+@EnableConfigurationProperties(CooltureGatewayProperties.class)
 public class GatewayApplication {
 
   public static void main(String[] args) {

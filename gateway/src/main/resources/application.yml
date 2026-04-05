@@ -1,5 +1,6 @@
 server:
   port: 8080
+  forward-headers-strategy: framework
   servlet:
     session:
       cookie:
@@ -18,3 +19,18 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.security: DEBUG
     org.springframework.security.oauth2: TRACE
+
+coolture:
+  keycloak:
+    # Browser-visible Keycloak base URL (no /realms/...). Override when using path proxy, e.g. https://example.org/keycloak
+    auth-base: ${COOLTURE_KEYCLOAK_AUTH_BASE:http://${COOLTURE_PUBLIC_HOST:localhost}:${KEYCLOAK_PORT:8180}}
+    # Inside Docker network (include /keycloak when KC_HTTP_RELATIVE_PATH=keycloak)
+    internal-base: ${COOLTURE_KEYCLOAK_INTERNAL_BASE:http://keycloak:8180}
+  cors:
+    allowed-origins:
+      - "http://${COOLTURE_PUBLIC_HOST:localhost}:${GARAGE_API_HOST_PORT:3900}"
+      - "http://${COOLTURE_PUBLIC_HOST:localhost}:${GATEWAY_HOST_PORT:8080}"
+      - "http://${COOLTURE_PUBLIC_HOST:localhost}:${KEYCLOAK_PORT:8180}"
+      - "http://${COOLTURE_PUBLIC_HOST:localhost}:${REST_API_PORT:8081}"
+      - "http://${COOLTURE_PUBLIC_HOST:localhost}:${COOLTURE_FRONTEND_PORT:4000}"
+      - "http://${COOLTURE_PUBLIC_HOST:localhost}:${COOLTURE_NG_SERVE_PORT:4200}"

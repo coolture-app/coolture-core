@@ -5,10 +5,10 @@ spring:
         provider:
           keycloak:
             # Explicit URIs bypass the issuer-match check at startup entirely
-            authorization-uri: http://localhost:8180/realms/coolture-dev/protocol/openid-connect/auth
-            token-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/token
-            jwk-set-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/certs
-            user-info-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/userinfo
+            authorization-uri: ${coolture.keycloak.auth-base}/realms/coolture-dev/protocol/openid-connect/auth
+            token-uri: ${coolture.keycloak.internal-base}/realms/coolture-dev/protocol/openid-connect/token
+            jwk-set-uri: ${coolture.keycloak.internal-base}/realms/coolture-dev/protocol/openid-connect/certs
+            user-info-uri: ${coolture.keycloak.internal-base}/realms/coolture-dev/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username
         registration:
           keycloak:
@@ -29,7 +29,7 @@ spring:
         webmvc:
           routes:
             - id: api
-              uri: ${GATEWAY_REST_API_URI:http://localhost:8081}
+              uri: ${GATEWAY_REST_API_URI:http://${COOLTURE_GATEWAY_BACKEND_HOST:localhost}:${REST_API_HOST_PORT:8081}}
               predicates:
                 - Path=/api/**
               filters:
