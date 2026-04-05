@@ -1,0 +1,33 @@
+# rest-api/src/main/resources/application-homelab.yml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # issuer-uri must match the iss claim Keycloak puts in tokens
+          # Keycloak sets this from KC_HOSTNAME
+          issuer-uri: http://${HOST_ADDR:localhost}:${KEYCLOAK_PORT:8180}/realms/coolture-dev
+          # key fetch in Docker
+          jwk-set-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/certs
+
+  datasource:
+    url: jdbc:postgresql://postgres:${POSTGRES_PORT:5432}/${POSTGRES_DB:coolture_db}
+    username: ${POSTGRES_USER:admin}
+    password: ${POSTGRES_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+
+storage:
+  s3:
+    endpoint: http://s3garage:${GARAGE_API_HOST_PORT}
+    region: garage
+    access-key: ${GARAGE_ACCESS_KEY_ID}
+    secret-key: ${GARAGE_ACCESS_KEY_SECRET}
+    bucket-name: ${GARAGE_BUCKET_NAME}
+
+app:
+  allowed-origins: >
+    http://${HOST_ADDR:localhost}:${GATEWAY_HOST_PORT:8090},
+    http://${HOST_ADDR:localhost}:${REST_API_HOST_PORT:8091},
+    http://${HOST_ADDR:localhost}:3900,
+    http://${HOST_ADDR:localhost}:8180,
+    http://${HOST_ADDR:localhost}:4200

@@ -106,7 +106,7 @@ services:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql
     ports:
-      - 5432:5432
+      - 5430:5432
     networks:
       - devnet
     healthcheck:

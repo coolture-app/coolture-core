@@ -1,5 +1,6 @@
 package pl.coolture.restapi.common.config.openapi;
 
+import org.springframework.beans.factory.annotation.Value;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.OAuthFlow;
@@ -14,19 +15,29 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenApiConfig {
+  @Value("${env.keycloak.open-id-url:http://localhost:8180/realms/coolture-dev/protocol/openid-connect/}")
+  private String keycloakUrl;
+
+  @Value("${env.host.addr:localhost}")
+  private String hostAddr;
+
+  @Value("${env.host.gateway-port:8090}")
+  private String gatewayPort;
+
+  @Value("${env.host.rest-api-port:8091}")
+  private String restApiPort;
 
   @Bean
   public OpenAPI customOpenAPI() {
-    final String keycloakUrl = "http://localhost:8180/realms/coolture-dev/protocol/openid-connect/";
 
     return new OpenAPI()
         .servers(
             List.of(
                 new Server()
-                    .url("http://localhost:8081/api")
+                    .url("http://" + hostAddr + ":" + restApiPort + "/api")
                     .description("Direct REST API (Resource Server)"),
                 new Server()
-                    .url("http://localhost:8080/api")
+                    .url("http://" + hostAddr + ":" + gatewayPort + "/api")
                     .description("Via Spring Cloud Gateway (BFF)")))
         .components(
             new Components()

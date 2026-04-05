@@ -1,0 +1,55 @@
+# gateway/src/main/resources/application-homelab.yml
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            # World
+            authorization-uri: http://${HOST_ADDR:localhost}:${KEYCLOAK_PORT:8180}/realms/coolture-dev/protocol/openid-connect/auth
+            # Docker
+            token-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/token
+            jwk-set-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/certs
+            user-info-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/userinfo
+            user-name-attribute: preferred_username
+        registration:
+          keycloak:
+            client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}
+            client-secret: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "http://${HOST_ADDR:localhost}:${GATEWAY_HOST_PORT:8090}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+              - roles
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: api
+              uri: http://rest-api:8081   # internal hostname from docker-compose
+              predicates:
+                - Path=/api/**
+              filters:
+                - TokenRelay=
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+                - RemoveRequestHeader=Cookie
+            - id: s3
+              uri: http://s3garage:3900
+              predicates:
+                - Path=/${GARAGE_BUCKET_NAME}/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+                - RemoveRequestHeader=Cookie
+
+app:
+  allowed-origins: >
+    http://${HOST_ADDR:localhost}:${GATEWAY_HOST_PORT:8090},
+    http://${HOST_ADDR:localhost}:${REST_API_HOST_PORT:8091},
+    http://${HOST_ADDR:localhost}:3900,
+    http://${HOST_ADDR:localhost}:8180,
+    http://${HOST_ADDR:localhost}:4200
