@@ -1,4 +1,4 @@
-# gateway/src/main/resources/application-homelab.yml
+  # gateway/src/main/resources/application-homelab.yml
 spring:
   security:
     oauth2:
@@ -53,3 +53,5 @@ app:
     http://${HOST_ADDR:localhost}:3900,
     http://${HOST_ADDR:localhost}:8180,
     http://${HOST_ADDR:localhost}:4200
+  frontend:
+    redirect-uri: "http://${HOST_ADDR:localhost}:4200/"
