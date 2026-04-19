@@ -1,0 +1,40 @@
+Project Coolture {
+  database_type: 'PostgreSQL'
+  Note:
+  // In these quotes write Markdown to describe project 
+  '''
+    # Coolture relational data base schema
+  '''
+}
+
+// Tables
+
+// User related tables
+Table users {
+    id uuid [pk]
+}
+Table profile_images {
+    id uuid [pk]
+}
+
+// Post related tables
+Table posts {
+    id uuid [pk]
+}
+Table post_media {
+    id uuid [pk]
+}
+Table comments {
+    id uuid [pk]
+}
+Table post_reactions {
+    id uuid [pk]
+}
+Table post_participations {
+    id uuid [pk]
+}
+
+// Media related tables
+Table media {
+    id uuid [pk]
+}
