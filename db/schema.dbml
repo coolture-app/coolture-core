@@ -65,6 +65,10 @@ Table user_relations {
         not null,
         default: 'now()'
     ]
+
+    indexes {
+        (source_user_id, target_user_id) [unique, name: 'idx_unique_user_relation']
+    }
 }
 
 // Post related tables
@@ -268,6 +272,10 @@ Table post_reactions {
     created_at timestamptz [
         not null
     ]
+
+    indexes {
+        (user_id, post_id) [pk, note: 'Ensures one reaction per user per post']
+    }
 }
 
 Enum participation_type {
@@ -290,6 +298,10 @@ Table post_participations {
     created_at timestamptz [
         not null
     ]
+
+    indexes {
+        (user_id, post_id) [pk, note: 'Ensures one participation per user per post']
+    }
 }
 
 // Event related tables
@@ -326,19 +338,16 @@ Table event_locations {
     city varchar(128) [
         not null
     ]
-    latitude numeric(9,6) [
+    coordinates geography(Point, 4326) [
         not null,
-        note: 'later will be replaced by postgis type'
+        note: 
+        '''
+            PostGIS type for map localization; 
+            4326 is SRID for WGS 84, bcs OSM uses it;
+            degrees are the unit;
+            geography() instead of geometry() is taking earth curvature into account; 
+        '''
     ]
-    longitude numeric(9,6) [
-        not null,
-        note: 'later will be replaced by postgis type'
-    ]
-
-    checks {
-        `latitude between -90 and 90` [name: 'chk_latitude_range']
-        `longitude between -180 and 180` [name: 'chk_longitude_range']
-    }
 }
 
 Table event_categories {
@@ -394,30 +403,6 @@ Table media {
 }
 
 Table profile_images {
-    user_id uuid [
-        pk,
-        ref: - users.id
-    ]
-    full_media_id uuid [
-        not null,
-        ref: > media.id,
-        note: 'full size profile picture ref'
-    ]
-    thumbnail_media_id uuid [
-        not null,
-        ref: > media.id,
-        note: 'thumbnail profile picture ref'
-    ]
-    updated_at timestamptz [
-        not null,
-        default: 'now()',
-        note: 'timestamp created on profile picture change'
-    ]
-
-    Note: 'Stores only one row per user - active avatar'
-}
-
-Table profile_images_history {
     id uuid [
         pk,
         default: 'gen_random_uuid()'
@@ -428,26 +413,32 @@ Table profile_images_history {
     ]
     full_media_id uuid [
         not null,
-        ref: > media.id,
-        note: 'full size profile picture ref'
+        ref: > media.id
     ]
     thumbnail_media_id uuid [
         not null,
-        ref: > media.id,
-        note: 'thumbnail profile picture ref'
+        ref: > media.id
+    ]
+    is_active boolean [
+        not null,
+        default: true,
+        note: 'only one row per user should be true at a time'
     ]
     set_at timestamptz [
         not null,
-        default: 'now()',
-        note: 'notes when particular profile picture was set for active one'
+        default: 'now()'
     ]
     unset_at timestamptz [
-        note: 'null only for active profile image'
+        null,
+        note: 'filled when image is replaced (is_active becomes false)'
     ]
 
-    Note: 'Stores info about all profile images of the particular user.'
-}
+    indexes {
+        (user_id, is_active) [name: 'idx_active_avatar']
+    }
 
+    Note: 'Table for current and historical profile pictures'
+}
 
 Table post_media {
     id uuid [
