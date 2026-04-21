@@ -40,7 +40,7 @@ info:
     Actual bytes should be fetched by the browser. 
     Presigned URLs must point to public S3 bucket address.
 
-    1. `POST /media/uploads/initiate` -> receive `uploadUrl` and `mediaId`.
+    1. `POST /media/uploads/init` -> receive `uploadUrl` and `mediaId`.
     2. `PUT` the file directly to the `uploadUrl` (S3/Garage).
     3. `POST /media/uploads/{mediaId}/complete` to confirm the upload.
     4. Include `mediaId` when creating/updating a post.
@@ -109,11 +109,11 @@ paths:
   /auth/me:
     get:
       tags: [Auth]
-      summary: Get current user profile
-      description: Returns the profile of the authenticated user.
+      summary: Retrieve current authenticated user profile
+      description: Fetches the profile data of the user associated with the provided JWT token.
       responses:
         '200':
-          description: User profile
+          description: User profile data
           content:
             application/json:
               schema:
@@ -124,11 +124,12 @@ paths:
   /users:
     get:
       tags: [Users]
-      summary: Search users
-      description: Search by username or real name.
+      summary: Search for users
+      description: Performs a text search across usernames and real names.
       parameters:
         - name: q
           in: query
+          description: Search query string
           schema:
             type: string
             maxLength: 128
@@ -136,7 +137,7 @@ paths:
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
-          description: Paginated list of users
+          description: Paginated list of matching users
           content:
             application/json:
               schema:
@@ -155,12 +156,12 @@ paths:
   /users/{userId}:
     get:
       tags: [Users]
-      summary: Get user profile by ID
+      summary: Fetch a specific user profile by ID
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '200':
-          description: User profile
+          description: Detailed user profile including relationship status with the requester
           content:
             application/json:
               schema:
@@ -169,8 +170,8 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
           tags: [Users]
-          summary: Update own user profile
-          description: Editable fields only. Identity stays in Keycloak.
+          summary: Update own profile information
+          description: Editable fields only. Identity stays in Keycloak. Only the authenticated user can update their own profile.
           parameters:
             - $ref: '#/components/parameters/UserIdParam'
           requestBody:
@@ -181,7 +182,7 @@ paths:
                   $ref: '#/components/schemas/UserProfileUpdateRequest'
           responses:
             '200':
-              description: Profile updated
+              description: Profile successfully updated
               content:
                 application/json:
                   schema:
@@ -198,7 +199,7 @@ paths:
   /users/{userId}/profile-image:
     put:
       tags: [Users, Media]
-      summary: Set current profile image (own user only)
+      summary: Set or update the active profile picture
       description: |
         Links previously uploaded media (full image + thumbnail) as the active profile picture.
         Previous image is deactivated.
@@ -215,12 +216,14 @@ paths:
                 fullMediaId:
                   type: string
                   format: uuid
+                  description: Media ID of the full resolution profile image
                 thumbnailMediaId:
                   type: string
                   format: uuid
+                  description: Media ID of the corresponding thumbnail image
       responses:
         '200':
-          description: Profile image updated
+          description: Profile image updated successfully
           content:
             application/json:
               schema:
@@ -244,24 +247,25 @@ paths:
     delete:
       tags: [Users, Media]
       summary: Remove current profile image
-      description: Reverts to the default avatar.
+      description: Deactivates the current profile image and reverts the user avatar to the system default.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '204':
-          description: Profile image removed
+          description: Profile image removed successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
 
   /users/by-username/{username}:
     get:
       tags: [Users]
-      summary: Get user profile by username
+      summary: Fetch a specific user profile by username
+      description: Alternative lookup endpoint using the unique username handle.
       parameters:
         - $ref: '#/components/parameters/UsernameParam'
       responses:
         '200':
-          description: User profile
+          description: User profile found
           content:
             application/json:
               schema:
@@ -273,13 +277,14 @@ paths:
     get:
       tags: [Relations]
       summary: List followers of a user
+      description: Retrieves a paginated list of users who are following the specified user.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
         - $ref: '#/components/parameters/CursorParam'
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
-          description: Paginated list
+          description: Paginated list of followers
           content:
             application/json:
               schema:
@@ -297,13 +302,14 @@ paths:
     get:
       tags: [Relations]
       summary: List users followed by this user
+      description: Retrieves a paginated list of users that the specified user is following.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
         - $ref: '#/components/parameters/CursorParam'
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
-          description: Paginated list
+          description: Paginated list of followed users
           content:
             application/json:
               schema:
@@ -321,11 +327,12 @@ paths:
     post:
       tags: [Relations]
       summary: Follow a user
+      description: Creates a "FOLLOW" relationship.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '204':
-          description: Now following
+          description: Successfully followed the user
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -335,11 +342,12 @@ paths:
     delete:
       tags: [Relations]
       summary: Unfollow a user
+      description: Removes an existing "FOLLOW" relationship.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '204':
-          description: Unfollowed
+          description: Successfully unfollowed the user
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -348,14 +356,15 @@ paths:
   /users/{userId}/blocking:
     get:
       tags: [Relations]
-      summary: List users followed by this user
+      summary: List users blocked by this user
+      description: Retrieves a paginated list of users that the authenticated user has blocked.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
         - $ref: '#/components/parameters/CursorParam'
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
-          description: Paginated list
+          description: Paginated list of blocked users
           content:
             application/json:
               schema:
@@ -373,11 +382,12 @@ paths:
     post:
       tags: [Relations]
       summary: Block a user
+      description: Creates a "BLOCK" relationship.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '204':
-          description: User blocked
+          description: User successfully blocked
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -387,11 +397,12 @@ paths:
     delete:
       tags: [Relations]
       summary: Unblock a user
+      description: Removes an existing "BLOCK" relationship.
       parameters:
         - $ref: '#/components/parameters/UserIdParam'
       responses:
         '204':
-          description: User unblocked
+          description: User successfully unblocked
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -400,10 +411,10 @@ paths:
   /posts:
     get:
       tags: [Posts]
-      summary: List posts (infinite feed)
+      summary: Fetch event posts feed
       description: |
-        Main feed endpoint. Use cursor pagination.
-        Allows filtering.
+        The primary infinite-scroll feed endpoint. Supports filtering by category, tags, author, date range, 
+        and geographic radius (for offline events). Uses cursor pagination for stability.
       parameters:
         - $ref: '#/components/parameters/QueryParam'
         - $ref: '#/components/parameters/CategoryIdParam'
@@ -421,7 +432,7 @@ paths:
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
-          description: Paginated feed
+          description: Paginated feed of event posts
           content:
             application/json:
               schema:
@@ -438,10 +449,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
     post:
       tags: [Posts]
-      summary: Create a new post
+      summary: Publish a new cultural event post
       description: |
-        Creates an event post. For `OFFLINE` posts a location must be provided.
-        Media IDs listed in `mediaIds` must be already uploaded and confirmed.
+        Creates a new event post. 
+        - For `OFFLINE` events, a valid `location` object must be provided. 
+        - For `ONLINE` events, the `location` field must be omitted or set to `null`.
+        - Media IDs referenced in `mediaIds` must have been previously uploaded and confirmed.
       requestBody:
         required: true
         content:
@@ -450,7 +463,7 @@ paths:
               $ref: '#/components/schemas/PostCreateRequest'
       responses:
         '201':
-          description: Post created
+          description: Event post successfully created
           content:
             application/json:
               schema:
@@ -463,12 +476,13 @@ paths:
   /posts/{postId}:
     get:
       tags: [Posts]
-      summary: Get full post details
+      summary: Retrieve full event post details
+      description: Fetches the comprehensive view of an event, including all attached media items.
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       responses:
         '200':
-          description: Post details
+          description: Complete event details
           content:
             application/json:
               schema:
@@ -477,7 +491,8 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       tags: [Posts]
-      summary: Update a post (author only)
+      summary: Update an existing event post (author only)
+      description: Modifies fields of a published event. Updates are restricted to the original author.
       requestBody:
         required: true
         content:
@@ -488,7 +503,7 @@ paths:
         - $ref: '#/components/parameters/PostIdParam'
       responses:
         '200':
-          description: Post updated
+          description: Event post updated successfully
           content:
             application/json:
               schema:
@@ -503,12 +518,15 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       tags: [Posts]
-      summary: Soft-delete a post
+      summary: Soft-delete an event post
+      description: |
+        Marks the post as deleted. The post remains in the database for archival purposes 
+        but is excluded from public feeds and searches.
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       responses:
         '204':
-          description: Post deleted
+          description: Post successfully deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -519,10 +537,12 @@ paths:
   /posts/{postId}/comments:
     get:
       tags: [Comments]
-      summary: List comments for a post
+      summary: List comments on an event post
       description: |
-        Returns direct children only. Leave `parentCommentId` empty for root comments.
-        Set it to load replies for a specific comment. Depth is limited to 3 levels.
+        Retrieves comments for a specific post. 
+        - Leave `parentCommentId` empty to fetch root-level comments. 
+        - Provide `parentCommentId` to fetch direct replies to a specific comment.
+        - The API enforces a maximum thread depth of 3 (root -> reply -> reply to reply).
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
         - $ref: '#/components/parameters/ParentCommentIdParam'
@@ -530,7 +550,7 @@ paths:
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
-          description: Paginated comments
+          description: Paginated list of comments
           content:
             application/json:
               schema:
@@ -547,10 +567,11 @@ paths:
           $ref: '#/components/responses/NotFound'
     post:
       tags: [Comments]
-      summary: Create a comment or reply
+      summary:  Post a new comment or reply
       description: |
-        Creates a root comment when `parentCommentId` is omitted.
-        Creates a reply when it is provided. The server rejects depth > 2.
+         Adds a comment to an event. 
+         - Omit `parentCommentId` to post a top-level comment. 
+         - Include `parentCommentId` to post a reply. The server will reject attempts to exceed the maximum depth limit (depth > 2).
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       requestBody:
@@ -561,7 +582,7 @@ paths:
               $ref: '#/components/schemas/CommentCreateRequest'
       responses:
         '201':
-          description: Comment created
+          description: Comment created successfully
           content:
             application/json:
               schema:
@@ -576,7 +597,8 @@ paths:
   /comments/{commentId}:
     patch:
       tags: [Comments]
-      summary: Edit a comment (author only)
+      summary: Edit an existing comment (author only)
+      description: Updates the text content of a comment. Only the original author can perform this action.
       parameters:
         - $ref: '#/components/parameters/CommentIdParam'
       requestBody:
@@ -587,7 +609,7 @@ paths:
               $ref: '#/components/schemas/CommentUpdateRequest'
       responses:
         '200':
-          description: Comment updated
+          description: Comment successfully deleted
           content:
             application/json:
               schema:
@@ -601,12 +623,14 @@ paths:
     delete:
       tags: [Comments]
       summary: Soft-delete a comment
-      description: Content is cleared but structure remains for replies.
+      description: |
+        Marks a comment as deleted. The text content is cleared, but the structural record remains 
+        to preserve the thread hierarchy for any existing replies.
       parameters:
         - $ref: '#/components/parameters/CommentIdParam'
       responses:
         '204':
-          description: Comment deleted
+          description: Comment successfully deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -618,6 +642,7 @@ paths:
     put:
       tags: [Reactions]
       summary: Add or update reaction
+      description: Sets the authenticated user's reaction for a specific post. Overwrites any previous reaction.
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       requestBody:
@@ -628,7 +653,7 @@ paths:
               $ref: '#/components/schemas/ReactionRequest'
       responses:
         '204':
-          description: Reaction saved
+          description: Reaction saved successfully
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -638,11 +663,12 @@ paths:
     delete:
       tags: [Reactions]
       summary: Remove reaction
+      description: Clears the authenticated user's reaction from the specified post.
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       responses:
         '204':
-          description: Reaction removed
+          description: Reaction removed successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -652,6 +678,7 @@ paths:
     put:
       tags: [Participation]
       summary: Set participation status
+      description: Declares the authenticated user's intention to attend or take part in the event.
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       requestBody:
@@ -662,7 +689,7 @@ paths:
               $ref: '#/components/schemas/ParticipationRequest'
       responses:
         '204':
-          description: Participation saved
+          description: Participation status saved
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -672,11 +699,12 @@ paths:
     delete:
       tags: [Participation]
       summary: Remove participation status
+      description: Clears the participation declaration for the specified event.
       parameters:
         - $ref: '#/components/parameters/PostIdParam'
       responses:
         '204':
-          description: Participation removed
+          description: Participation status removed
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -685,19 +713,16 @@ paths:
   /media/uploads/init:
     post:
       tags: [Media]
-      summary: Start S3 upload - request for presigned PUT URL
+      summary: Initialize direct S3 file upload
       description: |
-        First step of the upload flow. Creates a pending media record and returns a
-        presigned PUT URL valid for X minutes.
-
-        **Server**:
-        - Creates media record in DB
-        - Generates an S3 object key ({purpose}/{ownerId}/{mediaId}.{extension})
-        - Returns temporary presigned PUT URL
-
-        **Client:**
-        1. `PUT` the file to the `uploadUrl` with the required headers.
-        2. Call `POST /media/uploads/{mediaId}/complete` after a successful upload.
+        The first step of the client-side upload flow. 
+        The server creates a media record in `PENDING` status and generates a presigned PUT URL 
+        pointing to the target S3 bucket.
+        
+        **Client Flow:**
+        1. Receive `uploadUrl` and required headers from this response.
+        2. Execute an HTTP `PUT` request to the `uploadUrl` with the file binary and specified headers.
+        3. Finalize the process by calling `POST /media/uploads/{mediaId}/complete`.
       requestBody:
         required: true
         content:
@@ -706,7 +731,7 @@ paths:
               $ref: '#/components/schemas/MediaUploadInitRequest'
       responses:
         '201':
-          description: Upload URL generated
+          description: Presigned URL generated successfully
           content:
             application/json:
               schema:
@@ -719,10 +744,11 @@ paths:
   /media/uploads/{mediaId}/complete:
     post:
       tags: [Media]
-      summary: Confirm successful upload
+      summary: Confirm completion of a direct upload
       description: |
-        Marks the media as `UPLOADED`. The server may verify object existence in Garage.
-        Call this **after** the `PUT` to S3 succeeds.
+        Called by the client after the file has been successfully `PUT` to the presigned S3 URL. 
+        The server transitions the media status from `PENDING` to `UPLOADED`, making it available 
+        for attachment to posts or profiles.
       parameters:
         - $ref: '#/components/parameters/MediaIdParam'
       requestBody:
@@ -733,7 +759,7 @@ paths:
               $ref: '#/components/schemas/MediaCompleteRequest'
       responses:
         '200':
-          description: Media confirmed
+          description: Media confirmed and marked as uploaded
           content:
             application/json:
               schema:
@@ -750,12 +776,15 @@ paths:
   /media/{mediaId}:
     get:
       tags: [Media]
-      summary: Get media metadata with presigned GET URL
+      summary: Retrieve media metadata and a presigned access by GET URL
+      description: |
+        Returns metadata for a specific media item, including a newly generated, time-limited 
+        presigned GET URL. The browser uses this URL to display the media directly from S3.
       parameters:
         - $ref: '#/components/parameters/MediaIdParam'
       responses:
         '200':
-          description: Media metadata
+          description: Media metadata with presigned access URL
           content:
             application/json:
               schema:
@@ -764,13 +793,15 @@ paths:
           $ref: '#/components/responses/NotFound'
     delete:
       tags: [Media]
-      summary: Delete media (owner only)
-      description: Removes the S3 object and marks the media as deleted
+      summary: Delete a media file (owner only)
+      description: |
+        Removes the media object from S3 storage and marks the database record as `DELETED`. 
+        Fails with a 409 Conflict if the media is currently in active use (e.g., set as a profile picture).
       parameters:
         - $ref: '#/components/parameters/MediaIdParam'
       responses:
         '204':
-          description: Media deleted
+          description: Media successfully deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -778,12 +809,13 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: Media is in use (e.g., active profile picture)
+          description: Conflict - Media is currently in use and cannot be deleted.
 
   /event-categories:
     get:
       tags: [Dictionaries]
-      summary: List all event categories
+      summary: List all available event categories
+      description: Fetches the predefined list of event classifications.
       responses:
         '200':
           description: List of categories
@@ -797,7 +829,8 @@ paths:
   /country-codes:
     get:
       tags: [Dictionaries]
-      summary: List country codes (ISO 3166-1 alpha-3)
+      summary: List supported country codes
+      description: Retrieves all supported ISO 3166-1 alpha-3 country codes.
       responses:
         '200':
           description: List of country codes
@@ -816,12 +849,12 @@ components:
       bearerFormat: JWT
       description: |
         Access token issued by Keycloak. 
-        Include as `Authorization: Bearer <token>`.
+        Include in the Authorization header as `Authorization: Bearer <token>`.
     keycloakAuth:
       type: oauth2
       description: |
-        OAuth2 Authorization Code flow (for interactive API docs).
-        Change paths in .yml file depending on environment.
+        OAuth2 Authorization Code flow for interactive API documentation tools. 
+        Update the authorization and token URLs to match the target environment.
       flows:
         authorizationCode:
           authorizationUrl: http://localhost:8180/realms/coolture-dev/protocol/openid-connect/auth
@@ -836,7 +869,7 @@ components:
     CursorParam:
       name: cursor
       in: query
-      description: Opaque cursor from previous page (omit for first page).
+      description: Opaque cursor string from a previous page response. Omit for the first page.
       schema:
         type: string
     LimitParam:
@@ -850,13 +883,17 @@ components:
     QueryParam:
       name: q
       in: query
+      description: Free text search query (searches titles, descriptions, and tags).
       schema:
         type: string
         maxLength: 100
     ParentCommentIdParam:
       name: parentCommentId
       in: query
-      description: If empty → root comments; if set → replies to that comment.
+      description: |
+        UUID of the parent comment. 
+        - Empty/null: Returns root comments. 
+        - Provided: Returns direct replies to the specified comment.
       schema:
         type: string
         format: uuid
@@ -893,6 +930,7 @@ components:
     UsernameParam:
       name: username
       in: path
+      description: Unique username handle of the user.
       required: true
       schema:
         type: string
@@ -940,18 +978,21 @@ components:
     StartsFromParam:
       name: startsFrom
       in: query
+      description: Filter events starting on or after this ISO 8601 timestamp.
       schema:
         type: string
         format: date-time
     StartsToParam:
       name: startsTo
       in: query
+      description: Filter events starting on or before this ISO 8601 timestamp.
       schema:
         type: string
         format: date-time
     LatitudeParam:
       name: latitude
       in: query
+      description: Latitude coordinate for geo-spatial search (WGS84).
       schema:
         type: number
         format: double
@@ -960,6 +1001,7 @@ components:
     LongitudeParam:
       name: longitude
       in: query
+      description: Longitude coordinate for geo-spatial search (WGS84).
       schema:
         type: number
         format: double
@@ -968,6 +1010,7 @@ components:
     RadiusKmParam:
       name: radiusKm
       in: query
+      description: Search radius in kilometers. Used in conjunction with `latitude` and `longitude`.
       schema:
         type: number
         format: double
@@ -1012,7 +1055,7 @@ components:
           type: boolean
         nextCursor:
           type: ["string", "null"]
-          description: Cursor for the next page.
+          description: Cursor value to be used for the next page request.
 
     # Dictionaries
     CountryCode:
@@ -1020,6 +1063,7 @@ components:
       required: [code]
       properties:
         code:
+          description: ISO 3166-1 alpha-3 country code.
           type: string
           minLength: 3
           maxLength: 3
@@ -1071,7 +1115,9 @@ components:
         url:
           type: string
           format: uri
-          description: Temporary access URL.
+          description: |
+            Time-limited presigned GET URL. Clients should cache this URL until expiration 
+            to reduce backend load. Direct access to the S3 object without this signature is denied.
         createdAt:
           type: string
           format: date-time
@@ -1108,6 +1154,7 @@ components:
         uploadUrl:
           type: string
           format: uri
+          description: Presigned PUT URL where the file binary should be sent.
         httpMethod:
           type: string
           enum: [PUT]
@@ -1118,6 +1165,9 @@ components:
           type: object
           additionalProperties:
             type: string
+          description: |
+            Required HTTP headers for the PUT request (e.g., `Content-Type`, `Content-Length`). 
+            Failing to include these will result in a signature mismatch.
 
     MediaCompleteRequest:
       type: object
@@ -1171,8 +1221,10 @@ components:
               format: date-time
             isFollowing:
               type: boolean
+              description: Indicates if the authenticated user follows this profile.
             isBlocked:
               type: boolean
+              description: Indicates if the authenticated user blocks this profile.
 
     UserProfileUpdateRequest:
       type: object
@@ -1191,7 +1243,7 @@ components:
           maxLength: 512
       minProperties: 1
 
-    # --- Location ---
+    # Location
     GeoPoint:
       type: object
       required: [latitude, longitude]
@@ -1256,9 +1308,11 @@ components:
           $ref: '#/components/schemas/MediaResource'
         position:
           type: integer
+          description: Display order index for this media item.
           minimum: 0
         isCover:
           type: boolean
+          description: Marks this media as the primary cover image for the event.
 
     PostBase:
       type: object
@@ -1289,6 +1343,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/EventLocation'
             - type: 'null'
+          description: Required for OFFLINE events, null for ONLINE events.
         title:
           type: string
           maxLength: 32
@@ -1337,9 +1392,15 @@ components:
           type: ["string", "null"]
           format: date-time
         myReaction:
-          $ref: '#/components/schemas/ReactionType'
+          oneOf:
+            - $ref: '#/components/schemas/ReactionType'
+            - type: 'null'
+          description: Reaction of the authenticated user, if any.
         myParticipation:
-          $ref: '#/components/schemas/ParticipationType'
+          oneOf:
+            - $ref: '#/components/schemas/ParticipationType'
+            - type: 'null'
+          description: Participation status of the authenticated user, if any.
         coverMedia:
           oneOf:
             - $ref: '#/components/schemas/MediaResource'
