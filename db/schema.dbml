@@ -120,13 +120,13 @@ Table posts {
     positive_reaction_count integer [
         not null,
         default: 0,
-        check: `reaction_count >= 0`,
+        check: `positive_reaction_count >= 0`,
         note: 'denormalized counter; only likes and other reactions considered positive are counted'
     ]
     negative_reaction_count integer [
         not null,
         default: 0,
-        check: `reaction_count >= 0`,
+        check: `negative_reaction_count >= 0`,
         note: 'denormalized counter; only dislikes and other reactions considered negative are counted'
     ]
     participant_count integer [
