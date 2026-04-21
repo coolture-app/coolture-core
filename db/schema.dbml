@@ -315,7 +315,7 @@ Table post_participations {
     post_id uuid [
         ref: > posts.id
     ]
-    type reaction_type [
+    type participation_type [
         not null,
         note: 'user can only declare one participation type for particular post'
     ]
