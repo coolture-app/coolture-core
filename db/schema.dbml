@@ -1,0 +1,536 @@
+Project Coolture {
+    database_type: 'PostgreSQL'
+    Note:
+    // In these quotes write Markdown to describe project 
+    '''
+        # Coolture RDB Design
+    '''
+}
+
+// Tables
+
+// User related tables
+Table users {
+    id uuid [
+        pk,
+        note: 'subject from Keycloak JWT'
+    ]
+    bio varchar(512) [
+        note: 'user description visible in his profile'
+    ]
+    first_name varchar(128) [
+        not null
+    ]
+    last_name varchar(128) [
+        not null
+    ]
+    username varchar(32) [
+        not null,
+        unique,
+        note: 'name that will be displayed to other users'
+    ]
+    created_at timestamptz [
+        not null,
+        default: 'now()'
+    ]
+
+    Note: 
+    '''
+        Mainly user profile data and relationships.
+        Identity data e.g. email is managed by Keycloak.
+    '''
+}
+
+Table user_relations {
+    source_user_id uuid [
+        not null,
+        ref: > users.id,
+        note: 'id of the user initiating relation with other user'
+    ]
+    target_user_id uuid [
+        not null,
+        ref: > users.id,
+        note: 'id of the user that is the target of the relation'
+    ]
+    type varchar(32) [
+        not null,
+        check: `type in ('FOLLOW', 'BLOCK')`,
+        note: 
+        '''
+            type of the relation between users; 
+            not enum bcs it can change
+        '''
+    ]
+    created_at timestamptz [
+        not null,
+        default: 'now()'
+    ]
+
+    indexes {
+        (source_user_id, target_user_id) [unique, name: 'idx_unique_user_relation']
+    }
+
+    Note: 'Bidirectional relationship between users'
+}
+
+// Post related tables
+Table posts {
+    id uuid [
+        pk, 
+        default: 'gen_random_uuid()' 
+    ]
+    author_id uuid [
+        not null,
+        ref: > users.id,
+        note: 'id of the user who created the post'
+    ]
+    event_location_id uuid [
+        null,
+        ref: > event_locations.id,
+        note: 'null when online event'
+    ]
+    event_category_id uuid [
+        not null,
+        ref: > event_categories.id
+    ]
+    title varchar(32) [
+        not null,
+        note: 'always fully visible short description of an event'
+    ]
+    description varchar(1024) [
+        not null,
+        note: 'full description of an event that author provides in the form'
+    ]
+    event_url varchar [
+        note: 'url to event website'
+    ]
+    starts_at timestamptz [
+        not null,
+        check: `starts_at > now()`,
+        note: 'event start datetime'
+    ]
+    ends_at timestamptz [
+        default: null,
+        check: `ends_at > starts_at`,
+        note: 'not always event end datetime is known therefore nullable'
+    ]
+    tags varchar(32)[] [
+        note: 'list of tags; different than categories, bcs user can provide own tags'
+    ]
+    positive_reaction_count integer [
+        not null,
+        default: 0,
+        check: `positive_reaction_count >= 0`,
+        note: 'denormalized counter; only likes and other reactions considered positive are counted'
+    ]
+    negative_reaction_count integer [
+        not null,
+        default: 0,
+        check: `negative_reaction_count >= 0`,
+        note: 'denormalized counter; only dislikes and other reactions considered negative are counted'
+    ]
+    participant_count integer [
+        not null,
+        default: 0,
+        check: `participant_count >= 0`,
+        note: 'denormalized counter'
+    ]
+    comments_count integer [
+        not null,
+        default: 0,
+        check: `comments_count >= 0`,
+        note: 'denormalized counter'
+    ]
+    type varchar(32) [
+        not null,
+        check: `type in ('OFFLINE', 'ONLINE')`,
+        note: 
+        '''
+            OFFLINE - event has it's location in physical world;
+            ONLINE - event is taking place only in virtual world;
+        '''
+    ]
+    status varchar(32) [
+        not null,
+        check: `status in ('ACTIVE', 'EDITED', 'DELETED')`,
+        note: 
+        '''
+            ACTIVE - created & published, but not edited yet;
+            EDITED - at least one edition was done;
+            DELETED - post was deleted, can be archived or be completely removed;
+            not enum bcs it can change
+        '''
+    ]
+    visibility varchar(32) [
+        not null,
+        check: `visibility in ('PUBLIC', 'PRIVATE', 'FRIENDS')`,
+        note:
+        '''
+            PUBLIC - visible to anyone visiting app;
+            PRIVATE - only visible to the author;
+            FRIENDS - only visible to users which are following back the author;
+            not enum bcs it can change
+        '''
+    ]
+    created_at timestamptz [
+        not null,
+        default: 'now()'
+    ]
+    last_modified_at timestamptz [
+        default: 'now()',
+        note: 'last post edition datetime'
+    ]
+    deleted_at timestamptz [
+        default: 'null',
+        note: 'post deletion datetime'
+    ]
+
+    checks {
+        `(
+            type = 'ONLINE' and event_location_id is null
+        ) or (
+            type = 'OFFLINE' and event_location_id is not null
+        )`
+    }
+
+    Note: 
+    '''
+        Core table for cultural events posts.
+        The event_location_id is nullable only for ONLINE events, 
+        enforced by a table check. 
+        Tags are stored as a PostgreSQL array for flexibility, 
+        while event_category_id links to a predefined organization.
+    '''
+}
+
+Table comments {
+    id uuid [
+        pk,
+        default: 'gen_random_uuid()'
+    ]
+    root_comment_id uuid [
+        null,
+        ref: > comments.id,
+        note: 
+        '''
+            reference to the top-level comment of the thread, 
+            null for root comment,
+            for fast fetching whole threads
+        '''
+    ]
+    parent_comment_id uuid [
+        null,
+        ref: > comments.id,
+        note: 'direct parent comment, root comment does not have parent' 
+    ]
+    ancestor_ids uuid[] [
+        note:
+        '''
+            materialized path (array of uuids)
+            to allow easy sorting and structure building without recursive queries
+        '''
+    ]
+    author_id uuid [
+        not null,
+        ref: > users.id
+    ]
+    post_id uuid [
+        not null,
+        ref: > posts.id,
+        note: 'comment is always referring to some post'
+    ]
+    content varchar(512) [
+        not null,
+        note: 'actual text content of the comment'
+    ]
+    replies_count integer [
+        not null,
+        default: 0,
+        check: `replies_count >= 0`,
+        note: 'denormalized counter to show View X replies on fronted without additional query'
+    ]
+    created_at timestamptz [
+        not null,
+        default: 'now()'
+    ]
+    last_edited_at timestamptz [
+        default: 'now()',
+        note: 'last edition datetime of the comment'
+    ]
+    deleted_at timestamptz [
+        default: null,
+        note: 'used for soft deletetion so child comments do not become orphans'
+    ]
+
+    Note: 
+    '''
+        Supports comment threads with materialized path (ancestor_ids)
+        for efficient retrieval of entire comment trees without need
+        for CTE.
+    '''
+}
+
+Enum reaction_type {
+    like
+    dislike
+    // later can add EMOJI REACTIONS!
+}
+
+Table post_reactions {
+    user_id uuid [
+        ref: > users.id
+    ]
+    post_id uuid [
+        ref: > posts.id
+    ]
+    type reaction_type [
+        not null,
+        note: 'user can only use one reaction for particular post'
+    ]
+    created_at timestamptz [
+        not null
+    ]
+
+    indexes {
+        (user_id, post_id) [pk, note: 'Ensures one reaction per user per post']
+    }
+
+    Note:
+    '''
+        Juntion table to represent 
+        many-to-many relationship users react to posts
+    '''
+}
+
+Enum participation_type {
+    interested
+    takes_part
+    // later can add more
+}
+
+Table post_participations {
+    user_id uuid [
+        ref: > users.id
+    ]
+    post_id uuid [
+        ref: > posts.id
+    ]
+    type participation_type [
+        not null,
+        note: 'user can only declare one participation type for particular post'
+    ]
+    created_at timestamptz [
+        not null
+    ]
+
+    indexes {
+        (user_id, post_id) [pk, note: 'Ensures one participation per user per post']
+    }
+
+    Note:
+    '''
+        Junction table to represent
+        many-to-many relationship users declare participation in event
+    '''
+}
+
+// Event related tables
+Table event_locations {
+    id uuid [
+        pk,
+        default: 'gen_random_uuid()'
+    ]
+    country_code varchar(3) [
+        not null,
+        ref: > country_codes.code,
+        note: 'event must happen in some country'
+    ]
+    venue_name varchar(64) [
+        default: null,
+        note: 'can be null e.g. when event has no venue'
+    ]
+    building_num varchar(16) [
+        default: null,
+        note: 
+        '''
+            can be null e.g. when event is not taking place inside the building;
+            varchar bcs can have form like: 16A or 12/55;
+        '''
+    ]
+    street varchar(128) [
+        default: null,
+        note: 'can be null e.g. city-wise happening'
+    ]
+    postal_code varchar(16) [
+        not null,
+        note: 'must be valid postal code for the chosen country'
+    ]
+    city varchar(128) [
+        not null
+    ]
+    coordinates geography(Point, 4326) [
+        not null,
+        note: 
+        '''
+            PostGIS type for map localization; 
+            4326 is SRID for WGS 84, bcs OSM uses it;
+            degrees are the unit;
+            geography() instead of geometry() is taking earth curvature into account; 
+        '''
+    ]
+
+    Note:
+    '''
+        Stores geo data representing event location.
+        Fields are nullable to accomodate various event types.
+    '''
+}
+
+Table event_categories {
+    id uuid [
+        pk,
+        default: 'gen_random_uuid()'
+    ]
+    name varchar(32) [
+        not null,
+        unique
+    ]
+
+    Note:
+    '''
+        Dictionary table for predefined event categories.
+        E.g., "music", "workshop", etc.
+        Separate from user tags, allow controlled classification
+    '''
+}
+
+// Media related tables
+Enum media_purpose {
+    profile_image
+    profile_image_thumbnail
+    event_cover
+    event_media
+}
+
+Table media {
+    id uuid [
+        pk,
+        default: 'gen_random_uuid()'
+    ]
+    owner_id uuid [
+        not null,
+        ref: > users.id
+    ]
+    object_key text [
+        not null,
+        unique,
+        note:
+        '''
+            resource key in S3 storage in form of:
+            purpose/ownerId/uuid.extension
+        '''
+    ]
+    purpose media_purpose [
+        not null
+    ]
+    mime_type varchar(64) [
+        not null
+    ]
+    size_bytes bigint [
+        not null
+    ]
+    created_at timestamptz [
+        not null,
+        default: 'now()'
+    ]
+
+    Note:
+    '''
+        Central table to represent all uploaded files
+        and model relationships between media, users and posts.
+        It is prepared to store info about S3 uploads.
+    '''
+}
+
+Table profile_images {
+    id uuid [
+        pk,
+        default: 'gen_random_uuid()'
+    ]
+    user_id uuid [
+        not null,
+        ref: > users.id
+    ]
+    full_media_id uuid [
+        not null,
+        ref: > media.id
+    ]
+    thumbnail_media_id uuid [
+        not null,
+        ref: > media.id
+    ]
+    is_active boolean [
+        not null,
+        default: true,
+        note: 'only one row per user should be true at a time'
+    ]
+    set_at timestamptz [
+        not null,
+        default: 'now()'
+    ]
+    unset_at timestamptz [
+        null,
+        note: 'filled when image is replaced (is_active becomes false)'
+    ]
+
+    indexes {
+        (user_id, is_active) [name: 'idx_active_avatar']
+    }
+
+    Note: 'Table for current and historical profile pictures'
+}
+
+Table post_media {
+    id uuid [
+        pk,
+        default: 'gen_random_uuid()'
+    ]
+    post_id uuid [
+        not null,
+        ref: > posts.id
+    ]
+    media_id uuid [
+        not null,
+        ref: > media.id
+    ]
+    position integer [
+        not null,
+        default: 0,
+        check: `position >= 0`,
+        note: 'order of particular media display in post'
+    ]
+    is_cover boolean [
+        not null,
+        default: false,
+        note: 'true is set when media is chosen to be representative of whole post as cover'
+    ]
+
+    Note:
+    '''
+        Junction table to represent many-to-many relationship
+        posts have media. Allows post to have multiple images and videos.
+    '''
+}
+
+// Other tables
+Table country_codes {
+    code varchar(3) [
+        pk,
+        note: 'country codes in ISO 3166-1 alpha-3 standard, e.g. POL'
+    ]
+
+    Note:
+    '''
+        Lookup table for country codes.
+    '''
+}
