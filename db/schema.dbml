@@ -54,7 +54,7 @@ Table user_relations {
     ]
     type varchar(32) [
         not null,
-        check: `type in ('FOLLOWING', 'BLOCKED')`,
+        check: `type in ('FOLLOW', 'BLOCK')`,
         note: 
         '''
             type of the relation between users; 
