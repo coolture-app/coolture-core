@@ -69,6 +69,8 @@ Table user_relations {
     indexes {
         (source_user_id, target_user_id) [unique, name: 'idx_unique_user_relation']
     }
+
+    Note: 'Bidirectional relationship between users'
 }
 
 // Post related tables
@@ -190,6 +192,15 @@ Table posts {
             type = 'OFFLINE' and event_location_id is not null
         )`
     }
+
+    Note: 
+    '''
+        Core table for cultural events posts.
+        The event_location_id is nullable only for ONLINE events, 
+        enforced by a table check. 
+        Tags are stored as a PostgreSQL array for flexibility, 
+        while event_category_id links to a predefined organization.
+    '''
 }
 
 Table comments {
@@ -250,6 +261,13 @@ Table comments {
         default: null,
         note: 'used for soft deletetion so child comments do not become orphans'
     ]
+
+    Note: 
+    '''
+        Supports comment threads with materialized path (ancestor_ids)
+        for efficient retrieval of entire comment trees without need
+        for CTE.
+    '''
 }
 
 Enum reaction_type {
@@ -276,6 +294,12 @@ Table post_reactions {
     indexes {
         (user_id, post_id) [pk, note: 'Ensures one reaction per user per post']
     }
+
+    Note:
+    '''
+        Juntion table to represent 
+        many-to-many relationship users react to posts
+    '''
 }
 
 Enum participation_type {
@@ -302,6 +326,12 @@ Table post_participations {
     indexes {
         (user_id, post_id) [pk, note: 'Ensures one participation per user per post']
     }
+
+    Note:
+    '''
+        Junction table to represent
+        many-to-many relationship users declare participation in event
+    '''
 }
 
 // Event related tables
@@ -348,6 +378,12 @@ Table event_locations {
             geography() instead of geometry() is taking earth curvature into account; 
         '''
     ]
+
+    Note:
+    '''
+        Stores geo data representing event location.
+        Fields are nullable to accomodate various event types.
+    '''
 }
 
 Table event_categories {
@@ -359,6 +395,13 @@ Table event_categories {
         not null,
         unique
     ]
+
+    Note:
+    '''
+        Dictionary table for predefined event categories.
+        E.g., "music", "workshop", etc.
+        Separate from user tags, allow controlled classification
+    '''
 }
 
 // Media related tables
@@ -400,6 +443,13 @@ Table media {
         not null,
         default: 'now()'
     ]
+
+    Note:
+    '''
+        Central table to represent all uploaded files
+        and model relationships between media, users and posts.
+        It is prepared to store info about S3 uploads.
+    '''
 }
 
 Table profile_images {
@@ -464,6 +514,12 @@ Table post_media {
         default: false,
         note: 'true is set when media is chosen to be representative of whole post as cover'
     ]
+
+    Note:
+    '''
+        Junction table to represent many-to-many relationship
+        posts have media. Allows post to have multiple images and videos.
+    '''
 }
 
 // Other tables
@@ -472,4 +528,9 @@ Table country_codes {
         pk,
         note: 'country codes in ISO 3166-1 alpha-3 standard, e.g. POL'
     ]
+
+    Note:
+    '''
+        Lookup table for country codes.
+    '''
 }
