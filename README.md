@@ -1,6 +1,13 @@
 # coolture
 
-### zapis realma z userami:
+### Keycloak Realm Export with User Profiles
+
+Export the `coolture-dev` realm with users to `./keycloak/export/`.
+Most of the times you should not version exports.
+To prepare exported realm for import in next Keycloak service 
+all of the env variables should be provided as in last `realm.json` that was used.
+
+Run these commands from project root folder.
 
 ```
 docker-compose stop keycloak
@@ -14,29 +21,23 @@ docker-compose run --rm \
     --users realm_file
 ```
 
-### uruchomienie na homelab
+### Keycloak Test Users
 
-```
-docker-compose -f docker-compose.yml -f docker-compose.homelab.yml up
-```
+| Username | Password |
+| --- | --- |
+| coolture_admin | admin |
+| coolture_user | admin |
 
-### testy endpointów
+### Managing Keycloak Through Admin Console
 
-adres: `10.0.0.1:8090/api/swagger-ui.html`
-
-### uzytkownicy testowi
-
-`coolture_admin`
-`coolture_user`
-
-do obu pass: `admin`
-
-### zarzadzanie keycloakiem
-
-adres `10.0.0.1:8180`
+URL: `<host_address>:<keycloak_port>`
 login: `admin`
-hasło: `admin`
+password: `admin`
 
-### dostepne profile spring
+### Available Spring Profiles
 
 `local`, `dev`, `homelab`
+
+More than one profile can be set.
+Profiles can be selected through `.env` file 
+or during local development in IntelliJ Idea build configuration.
