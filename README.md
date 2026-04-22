@@ -33,11 +33,3 @@ docker-compose run --rm \
 URL: `<hostname>:<keycloak_port>`
 login: `admin`
 password: `admin`
-
-### Available Spring Profiles
-
-`local`, `dev`, `homelab`
-
-More than one profile can be set.
-Profiles can be selected through `.env` file 
-or during local development in IntelliJ Idea build configuration.

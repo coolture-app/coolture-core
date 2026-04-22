@@ -1,14 +1,26 @@
 server:
-  port: 8081
+  port: ${REST_API_INTERNAL_PORT:8081}
   servlet:
     context-path: /api
 
 spring:
   application:
-    name: rest-api
+    name: ${REST_API_INTERNAL_HOSTNAME:rest-api}
 
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Must match with "iss" in JWT which has KC_HOSTNAME as an address
+          issuer-uri: http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev
+          # JWK is fetched on backend side (inside private network or when developing locally INTERNAL_HOSTNAME == HOSTNAME)
+          jwk-set-uri: http://${KEYCLOAK_INTERNAL_HOSTNAME:localhost}:${KEYCLOAK_INTERNAL_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_INTERNAL_HOSTNAME:localhost}:${POSTGRES_INTERNAL_PORT:5432}/${POSTGRES_DB:coolture_db}
+    username: ${POSTGRES_USER:admin}
+    password: ${POSTGRES_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -22,6 +34,14 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+
+storage:
+  s3:
+    endpoint: http://${GARAGE_API_INTERNAL_HOSTNAME:localhost}:${GARAGE_API_INTERNAL_PORT:3900}
+    region: ${GARAGE_REGION:garage}
+    access-key: ${GARAGE_ACCESS_KEY_ID}
+    secret-key: ${GARAGE_ACCESS_KEY_SECRET}
+    bucket-name: ${GARAGE_BUCKET_NAME:coolture-bucket}
 
 management:
   endpoints:
@@ -47,8 +67,6 @@ logging:
     root: INFO
     web: DEBUG
     pl.coolture: DEBUG
-#    org.springframework.security: DEBUG
-#    org.springframework.security.oauth2: TRACE
 
 env:
   host:

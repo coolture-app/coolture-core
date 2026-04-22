@@ -1,10 +1,10 @@
 services:
   gateway:
     build: ./gateway
-    hostname: gateway
+    hostname: ${GATEWAY_INTERNAL_HOSTNAME:-gateway}
     env_file: .env
     ports:
-      - "${GATEWAY_HOST_PORT}:8080"
+      - "${GATEWAY_HOST_PORT:-8080}:${GATEWAY_INTERNAL_PORT:-8080}"
     networks:
       - devnet
     depends_on:
@@ -13,10 +13,10 @@ services:
 
   rest-api:
     build: ./rest-api
-    hostname: rest-api
+    hostname: ${REST_API_INTERNAL_HOSTNAME:-rest-api}
     env_file: .env
     ports:
-      - "${REST_API_HOST_PORT}:8081"
+      - "${REST_API_HOST_PORT:-8081}:${REST_API_INTERNAL_PORT:-8081}"
     networks:
       - devnet
     depends_on:
