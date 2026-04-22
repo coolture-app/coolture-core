@@ -7,7 +7,7 @@ spring:
       include-binding-errors: always
 
   datasource:
-    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:coolture_db}
+    url: jdbc:postgresql://localhost:${POSTGRES_HOST_PORT:5432}/${POSTGRES_DB:coolture_db}
     username: ${POSTGRES_USER:admin}
     password: ${POSTGRES_PASSWORD:admin}
     driver-class-name: org.postgresql.Driver

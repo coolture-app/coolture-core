@@ -57,4 +57,4 @@ env:
     rest-api-port: ${REST_API_HOST_PORT:8091}
   keycloak:
     client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}
-    open-id-url: http://${HOSTNAME:localhost}:${KEYCLOAK_PORT:8180}/realms/coolture-dev/protocol/openid-connect/
+    open-id-url: http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/

@@ -58,8 +58,8 @@ services:
     environment:
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true" # Enable non secure HTTP for development
-      KC_HOSTNAME: localhost
-      KC_HTTP_PORT: ${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME: ${HOSTNAME}
+      KC_HTTP_PORT: ${KEYCLOAK_HOST_PORT:-8180}
       KC_HTTP_MANAGEMENT_PORT: ${KEYCLOAK_MANAGEMENT_PORT:-8181}
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
@@ -71,8 +71,8 @@ services:
       - ./keycloak/import:/opt/keycloak/data/import:ro
       - ./keycloak/export:/tmp/export
     ports:
-      - ${KEYCLOAK_PORT:-8180}:8180
-      - ${KEYCLOAK_MANAGEMENT_PORT:-8181}:8181
+      - ${KEYCLOAK_HOST_PORT:-8180}:8180
+      - ${KEYCLOAK_MANAGEMENT_HOST_PORT:-8181}:8181
     networks:
       - devnet
     healthcheck:
@@ -106,7 +106,7 @@ services:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql
     ports:
-      - 5430:5432
+      - ${POSTGRES_HOST_PORT}:5432
     networks:
       - devnet
     healthcheck:
