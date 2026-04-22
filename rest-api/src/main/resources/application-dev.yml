@@ -7,7 +7,7 @@ spring:
           jwk-set-uri: http://keycloak:8180/realms/coolture-dev/protocol/openid-connect/certs
 
   datasource:
-    url: jdbc:postgresql://postgres:${POSTGRES_PORT:5432}/${POSTGRES_DB:coolture_db}
+    url: jdbc:postgresql://postgres:${POSTGRES_HOST_PORT:5432}/${POSTGRES_DB:coolture_db}
     username: ${POSTGRES_USER:admin}
     password: ${POSTGRES_PASSWORD:admin}
     driver-class-name: org.postgresql.Driver

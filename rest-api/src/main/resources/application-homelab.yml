@@ -23,11 +23,3 @@ storage:
     access-key: ${GARAGE_ACCESS_KEY_ID}
     secret-key: ${GARAGE_ACCESS_KEY_SECRET}
     bucket-name: ${GARAGE_BUCKET_NAME}
-
-app:
-  allowed-origins: >
-    http://${HOSTNAME:localhost}:${GATEWAY_HOST_PORT:8090},
-    http://${HOSTNAME:localhost}:${REST_API_HOST_PORT:8091},
-    http://${HOSTNAME:localhost}:3900,
-    http://${HOSTNAME:localhost}:8180,
-    http://${HOSTNAME:localhost}:4200
