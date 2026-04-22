@@ -18,9 +18,9 @@ spring:
             authorization-uri: >-
               http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/auth
             # Backend communication with Keycloak (inside private network or when developing locally INTERNAL_HOSTNAME == HOSTNAME)
-            token-uri: http://${KEYCLOAK_INTERNAL_HOSTNAME:keycloak}:${KEYCLOAK_INTERNAL_PORT:8180}/realms/coolture-dev/protocol/openid-connect/token
-            jwk-set-uri: http://${KEYCLOAK_INTERNAL_HOSTNAME:keycloak}:${KEYCLOAK_INTERNAL_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
-            user-info-uri: http://${KEYCLOAK_INTERNAL_HOSTNAME:keycloak}:${KEYCLOAK_INTERNAL_PORT:8180}/realms/coolture-dev/protocol/openid-connect/userinfo
+            token-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:keycloak}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/token
+            jwk-set-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:keycloak}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
+            user-info-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:keycloak}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/userinfo
             user-name-attribute: preferred_username
         registration:
           keycloak:
@@ -41,7 +41,7 @@ spring:
         webmvc:
           routes:
             - id: api
-              uri: http://${REST_API_INTERNAL_HOSTNAME}:${REST_API_INTERNAL_PORT:8081}
+              uri: http://${REST_API_CONNECT_HOSTNAME:localhost}:${REST_API_CONNECT_PORT:8081}
               predicates:
                 - Path=/api/**
               filters:
@@ -49,9 +49,9 @@ spring:
                 - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
                 - RemoveRequestHeader=Cookie
             - id: s3
-              uri: http://${GARAGE_API_INTERNAL_HOSTNAME}:${GARAGE_API_INTERNAL_PORT:3900}
+              uri: http://${GARAGE_API_CONNECT_HOSTNAME:localhost}:${GARAGE_API_CONNECT_PORT:3900}
               predicates:
-                - Path=/${GARAGE_BUCKET_NAME}/**
+                - Path=/${GARAGE_BUCKET_NAME:coolture-bucket}/**
               filters:
                 - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
                 - RemoveRequestHeader=Cookie
