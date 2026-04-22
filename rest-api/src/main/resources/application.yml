@@ -47,8 +47,8 @@ logging:
     root: INFO
     web: DEBUG
     pl.coolture: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.security.oauth2: TRACE
+#    org.springframework.security: DEBUG
+#    org.springframework.security.oauth2: TRACE
 
 env:
   host:

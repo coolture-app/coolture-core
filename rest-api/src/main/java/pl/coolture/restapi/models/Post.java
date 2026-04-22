@@ -20,6 +20,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.utils.UuidListConverter;
 
 @Entity
@@ -44,10 +45,6 @@ public class Post {
   @CreationTimestamp
   @Column(nullable = false, updatable = false)
   private LocalDateTime dateOfPosting;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "location_uuid")
-  private Location location;
 
   @Column(nullable = false)
   private String description;

@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import pl.coolture.restapi.models.Location;
 import pl.coolture.restapi.models.Post;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
@@ -20,8 +19,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   List<Post> searchPosts(@Param("searchTerm") String searchTerm);
 
   List<Post> findAllByOrderByDateOfPostingDesc();
-
-  List<Post> findAllByLocation(Location location);
 
   @Query(
       "SELECT DISTINCT p FROM Post p "

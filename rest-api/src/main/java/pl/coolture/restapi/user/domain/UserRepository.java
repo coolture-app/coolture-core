@@ -1,10 +1,9 @@
-package pl.coolture.restapi.repositories;
+package pl.coolture.restapi.user.domain;
 
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import pl.coolture.restapi.models.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {

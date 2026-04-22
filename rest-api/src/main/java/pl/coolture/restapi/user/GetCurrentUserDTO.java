@@ -1,4 +1,4 @@
-package pl.coolture.restapi.dtos.User;
+package pl.coolture.restapi.user;
 
 import java.util.List;
 import lombok.Builder;
