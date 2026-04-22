@@ -30,7 +30,7 @@ docker-compose run --rm \
 
 ### Managing Keycloak Through Admin Console
 
-URL: `<host_address>:<keycloak_port>`
+URL: `<hostname>:<keycloak_port>`
 login: `admin`
 password: `admin`
 

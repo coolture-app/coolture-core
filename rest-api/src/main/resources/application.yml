@@ -36,7 +36,7 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-    oauth2RedirectUrl: http://${HOST_ADDR:localhost}:${GATEWAY_HOST_PORT:8090}/api/swagger-ui/oauth2-redirect.html
+    oauth2RedirectUrl: http://${HOSTNAME:localhost}:${GATEWAY_HOST_PORT:8090}/api/swagger-ui/oauth2-redirect.html
     oauth:
       client-id: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID}
       client-secret: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET}
@@ -52,9 +52,9 @@ logging:
 
 env:
   host:
-    addr: ${HOST_ADDR:localhost}
+    addr: ${HOSTNAME:localhost}
     gateway-port: ${GATEWAY_HOST_PORT:8090}
     rest-api-port: ${REST_API_HOST_PORT:8091}
   keycloak:
     client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}
-    open-id-url: http://${HOST_ADDR:localhost}:${KEYCLOAK_PORT:8180}/realms/coolture-dev/protocol/openid-connect/
+    open-id-url: http://${HOSTNAME:localhost}:${KEYCLOAK_PORT:8180}/realms/coolture-dev/protocol/openid-connect/
