@@ -261,6 +261,16 @@ Table comments {
         default: null,
         note: 'used for soft deletetion so child comments do not become orphans'
     ]
+    status varchar(32) [
+        not null,
+        check: `status in ('ACTIVE', 'DELETED')`,
+        note: 
+        '''
+            ACTIVE - created & published
+            DELETED - post was deleted, can be archived or be completely removed
+            not enum bcs it can change
+        '''
+    ]
 
     Note: 
     '''
