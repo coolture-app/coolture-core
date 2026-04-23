@@ -16,7 +16,7 @@ spring:
           keycloak:
             # Public (e.g. Browser) communication with Keycloak
             authorization-uri: >-
-              http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/auth
+              http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/auth
             # Backend communication with Keycloak (inside private network or when developing locally INTERNAL_HOSTNAME == HOSTNAME)
             token-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:keycloak}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/token
             jwk-set-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:keycloak}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
@@ -28,7 +28,7 @@ spring:
             client-secret: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET}
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_basic
-            redirect-uri: http://${HOSTNAME}:${GATEWAY_HOST_PORT:8090}/login/oauth2/code/{registrationId}
+            redirect-uri: http://${HOST_NAME}:${GATEWAY_HOST_PORT:8090}/login/oauth2/code/{registrationId}
             scope:
               - openid
               - profile
@@ -58,13 +58,13 @@ spring:
 
 app:
   allowed-origins: >
-    http://${HOSTNAME:localhost}:${GATEWAY_HOST_PORT:8090},
-    http://${HOSTNAME:localhost}:${REST_API_HOST_PORT:8091},
-    http://${HOSTNAME:localhost}:${GARAGE_API_HOST_PORT:3900},
-    http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180},
-    http://${HOSTNAME:localhost}:${FRONTEND_HOST_PORT:4200}
+    http://${HOST_NAME:localhost}:${GATEWAY_HOST_PORT:8090},
+    http://${HOST_NAME:localhost}:${REST_API_HOST_PORT:8091},
+    http://${HOST_NAME:localhost}:${GARAGE_API_HOST_PORT:3900},
+    http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180},
+    http://${HOST_NAME:localhost}:${FRONTEND_HOST_PORT:4200}
   frontend:
-    redirect-uri: "http://${HOSTNAME:localhost}:${FRONTEND_HOST_PORT:4200}/"
+    redirect-uri: "http://${HOST_NAME:localhost}:${FRONTEND_HOST_PORT:4200}/"
 
 logging:
   level:

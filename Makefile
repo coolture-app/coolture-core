@@ -4,9 +4,10 @@
 # Accepted values: local | dev | deploy
 ENV ?= local
 
-# HOSTNAME is written to the HOSTNAME variable in .env
+# HOST_NAME is written to the HOST_NAME variable in .env
 # For local/dev it stays localhost; for deploy set it to your server IP (e.g. 10.0.0.1) or domain.
-HOSTNAME ?= localhost
+# Rememeber that HOSTNAME is system variable that is why it is named HOST_NAME in .env
+HOST_NAME ?= localhost
 
 # Secrets
 RPC_SECRET        := $(shell openssl rand -hex 32)
@@ -120,7 +121,7 @@ help:
 # Writes .env to the project root.
 env:
 	@{ \
-	echo "HOSTNAME=$(HOSTNAME)"; \
+	echo "HOST_NAME=$(HOST_NAME)"; \
 	echo ""; \
 	echo "# CONNECT"; \
 	echo "REST_API_CONNECT_HOSTNAME=$(C_REST_API_HOST)"; \
@@ -185,7 +186,7 @@ env:
 	} > .env
 	@echo 	"[env] Generated .env  ( \
 ENV=$(ENV), \
-HOSTNAME=$(HOSTNAME), \
+HOST_NAME=$(HOST_NAME), \
 GATEWAY_PORT=$(H_GATEWAY_PORT), \
 API_PORT=$(H_REST_API_PORT) \
 )"

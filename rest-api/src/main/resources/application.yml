@@ -12,7 +12,7 @@ spring:
       resourceserver:
         jwt:
           # Must match with "iss" in JWT which has KC_HOSTNAME as a public address
-          issuer-uri: http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev
+          issuer-uri: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev
           # JWK is fetched on backend side (inside private network or when developing locally INTERNAL_HOSTNAME == HOSTNAME)
           jwk-set-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:localhost}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
 
@@ -56,7 +56,7 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-    oauth2RedirectUrl: http://${HOSTNAME:localhost}:${GATEWAY_HOST_PORT:8090}/api/swagger-ui/oauth2-redirect.html
+    oauth2RedirectUrl: http://${HOST_NAME:localhost}:${GATEWAY_HOST_PORT:8090}/api/swagger-ui/oauth2-redirect.html
     oauth:
       client-id: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID}
       client-secret: ${KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET}
@@ -70,9 +70,9 @@ logging:
 
 env:
   host:
-    addr: ${HOSTNAME:localhost}
+    addr: ${HOST_NAME:localhost}
     gateway-port: ${GATEWAY_HOST_PORT:8090}
     rest-api-port: ${REST_API_HOST_PORT:8091}
   keycloak:
     client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}
-    open-id-url: http://${HOSTNAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/
+    open-id-url: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/
