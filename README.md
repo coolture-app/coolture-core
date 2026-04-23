@@ -18,6 +18,18 @@ variables are set automatically based on `ENV`:
 make help # for more info, also lot of descriptions in Makefile
 ```
 
+### Using `.env` Variables in Spring Apps During Local Runs
+
+One way is to source them before running services. Other way is to use IntelliJ Idea
+option to add environment variables. To do this you need to:
+1. Open: **Run** -> **Edit Configurations...**
+2. Select your app run config or create new one (as Spring Boot app)
+3. Click: **Modify options**
+4. Check option: **Environment variables**
+5. Back in app run config there is new box. Provide `.env` file in it.
+6. Apply changes (do the same for every run config you use: Gateway, REST API, etc.)
+IntelliJ will automatically load all variables from `.env` while starting the app.
+
 ### Keycloak Realm Export with User Profiles
 
 Export the `coolture-dev` realm with users to `./keycloak/export/`.
