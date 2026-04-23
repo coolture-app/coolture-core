@@ -1,0 +1,1631 @@
+openapi: 3.1.0
+info:
+  title: COOLTURE REST API
+  version: 1.0.0
+  summary: REST API for cultural event discovery, social interactions, and media management.
+  description: |
+    # Coolture App REST API
+    
+    ## Context
+    - API sits behind Spring Cloud Gateway which acts as the BFF & OAuth2 Client
+    - Gateway strips session cookie from frontend and injects Keycloak JWT
+      as a Bearer Token before forwarding requests
+    - Public endpoints are explicitly marked with `security: []`
+      Everything else requires valid JWT.
+
+    ## Info
+    - **Cursor pagination** is used for infinite feeds – stable under inserts and deletes & is faster
+      Usually in form (id, created_at) pair encoded in Base64.
+    - **Comment threads** are limited to three levels (root → reply → reply to reply).
+    - **Media upload** uses pre‑signed S3/Garage URLs so the API never proxies file bytes.
+
+    ## Authentication
+    Keycloak issues JWTs. The API acts as a resource server. Interactive clients can also use
+    the OAuth2 authorization code flow documented below.
+
+    ## Media & Signed URLs
+    All files are stored in GarageFS S3 bucket. Direct URL access
+    without signature is rejected.
+
+    When API returns any resource that contains media, each URL field
+    is a **presigned GET URL** which is time-limited and signed.
+    Browser uses it to fetch the file directly from storage 
+    without going through backend services.
+
+    Presigned GET URL lifetimes are established depending on resource type.
+    These URLs should be cached for time of expiration limit
+    server-side so signing overhead is reduced.
+
+    SSR: `img src` tags with presigned URLs are rendered usually on server side.
+    Actual bytes should be fetched by the browser. 
+    Presigned URLs must point to public S3 bucket address.
+
+    1. `POST /media/uploads/init` -> receive `uploadUrl` and `mediaId`.
+    2. `PUT` the file directly to the `uploadUrl` (S3/Garage).
+    3. `POST /media/uploads/{mediaId}/complete` to confirm the upload.
+    4. Include `mediaId` when creating/updating a post.
+  contact:
+    name: COOLTURE Team
+    email: cooltureapp@gmail.com
+
+servers:
+  - url: http://{hostAddress}:{port}{basePath}
+    description: REST API URL (possible via Gateway)
+    variables:
+      hostAddress:
+        default: localhost
+        description: Address of the REST API service
+      port:
+        default: '8080'
+        description: Port on which REST API is available
+      basePath:
+        default: /api
+        description: Base path for all endpoints
+
+tags:
+  - name: Health
+    description: Service health and readiness checks.
+  - name: Auth
+    description: Current authenticated user info.
+  - name: Users
+    description: Public user profiles and search.
+  - name: Relations
+    description: Follow, block and other social operations.
+  - name: Posts
+    description: Post CRUD, user feed
+  - name: Comments
+    description: Threaded comments with max depth 3.
+  - name: Reactions
+    description: Likes and dislikes for posts.
+  - name: Participation
+    description: Interest / attendance state for events.
+  - name: Media
+    description: S3 media upload and access.
+  - name: Dictionaries
+    description: Shared lookup data (categories, countries, etc.)
+
+security:
+  - bearerAuth: []
+  - keycloakAuth: [openid, profile]
+
+paths:
+  /actuator/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    examples: [UP]
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Retrieve current authenticated user profile
+      description: Fetches the profile data of the user associated with the provided JWT token.
+      responses:
+        '200':
+          description: User profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users:
+    get:
+      tags: [Users]
+      summary: Search for users
+      description: Performs a text search across usernames and real names.
+      parameters:
+        - name: q
+          in: query
+          description: Search query string
+          schema:
+            type: string
+            maxLength: 128
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of matching users
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserSummary'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /users/{userId}:
+    get:
+      tags: [Users]
+      summary: Fetch a specific user profile by ID
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '200':
+          description: Detailed user profile including relationship status with the requester
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+          tags: [Users]
+          summary: Update own profile information
+          description: Editable fields only. Identity stays in Keycloak. Only the authenticated user can update their own profile.
+          parameters:
+            - $ref: '#/components/parameters/UserIdParam'
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/UserProfileUpdateRequest'
+          responses:
+            '200':
+              description: Profile successfully updated
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/UserProfile'
+            '400':
+              $ref: '#/components/responses/BadRequest'
+            '401':
+              $ref: '#/components/responses/Unauthorized'
+            '403':
+              $ref: '#/components/responses/Forbidden'
+            '404':
+              $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/profile-image:
+    put:
+      tags: [Users, Media]
+      summary: Set or update the active profile picture
+      description: |
+        Links previously uploaded media (full image + thumbnail) as the active profile picture.
+        Previous image is deactivated.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullMediaId, thumbnailMediaId]
+              properties:
+                fullMediaId:
+                  type: string
+                  format: uuid
+                  description: Media ID of the full resolution profile image
+                thumbnailMediaId:
+                  type: string
+                  format: uuid
+                  description: Media ID of the corresponding thumbnail image
+      responses:
+        '200':
+          description: Profile image updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fullMediaId:
+                    type: string
+                    format: uuid
+                  thumbnailMediaId:
+                    type: string
+                    format: uuid
+                  setAt:
+                    type: string
+                    format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Users, Media]
+      summary: Remove current profile image
+      description: Deactivates the current profile image and reverts the user avatar to the system default.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: Profile image removed successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/by-username/{username}:
+    get:
+      tags: [Users]
+      summary: Fetch a specific user profile by username
+      description: Alternative lookup endpoint using the unique username handle.
+      parameters:
+        - $ref: '#/components/parameters/UsernameParam'
+      responses:
+        '200':
+          description: User profile found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/followers:
+    get:
+      tags: [Relations]
+      summary: List followers of a user
+      description: Retrieves a paginated list of users who are following the specified user.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of followers
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserSummary'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /users/{userId}/following:
+    get:
+      tags: [Relations]
+      summary: List users followed by this user
+      description: Retrieves a paginated list of users that the specified user is following.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of followed users
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserSummary'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /users/{userId}/follow:
+    post:
+      tags: [Relations]
+      summary: Follow a user
+      description: Creates a "FOLLOW" relationship.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: Successfully followed the user
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Relations]
+      summary: Unfollow a user
+      description: Removes an existing "FOLLOW" relationship.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: Successfully unfollowed the user
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/blocking:
+    get:
+      tags: [Relations]
+      summary: List users blocked by this user
+      description: Retrieves a paginated list of users that the authenticated user has blocked.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of blocked users
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserSummary'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /users/{userId}/block:
+    post:
+      tags: [Relations]
+      summary: Block a user
+      description: Creates a "BLOCK" relationship.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: User successfully blocked
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Relations]
+      summary: Unblock a user
+      description: Removes an existing "BLOCK" relationship.
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+      responses:
+        '204':
+          description: User successfully unblocked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /posts:
+    get:
+      tags: [Posts]
+      summary: Fetch event posts feed
+      description: |
+        The primary infinite-scroll feed endpoint. Supports filtering by category, tags, author, date range, 
+        and geographic radius (for offline events). Uses cursor pagination for stability.
+      parameters:
+        - $ref: '#/components/parameters/QueryParam'
+        - $ref: '#/components/parameters/CategoryIdParam'
+        - $ref: '#/components/parameters/TagsParam'
+        - $ref: '#/components/parameters/AuthorIdParam'
+        - $ref: '#/components/parameters/StatusParam'
+        - $ref: '#/components/parameters/VisibilityParam'
+        - $ref: '#/components/parameters/TypeParam'
+        - $ref: '#/components/parameters/StartsFromParam'
+        - $ref: '#/components/parameters/StartsToParam'
+        - $ref: '#/components/parameters/LatitudeParam'
+        - $ref: '#/components/parameters/LongitudeParam'
+        - $ref: '#/components/parameters/RadiusKmParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated feed of event posts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostCard'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [Posts]
+      summary: Publish a new cultural event post
+      description: |
+        Creates a new event post. 
+        - For `OFFLINE` events, a valid `location` object must be provided. 
+        - For `ONLINE` events, the `location` field must be omitted or set to `null`.
+        - Media IDs referenced in `mediaIds` must have been previously uploaded and confirmed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+      responses:
+        '201':
+          description: Event post successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /posts/{postId}:
+    get:
+      tags: [Posts]
+      summary: Retrieve full event post details
+      description: Fetches the comprehensive view of an event, including all attached media items.
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      responses:
+        '200':
+          description: Complete event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Posts]
+      summary: Update an existing event post (author only)
+      description: Modifies fields of a published event. Updates are restricted to the original author.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostUpdateRequest'
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      responses:
+        '200':
+          description: Event post updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Posts]
+      summary: Soft-delete an event post
+      description: |
+        Marks the post as deleted. The post remains in the database for archival purposes 
+        but is excluded from public feeds and searches.
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      responses:
+        '204':
+          description: Post successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /posts/{postId}/comments:
+    get:
+      tags: [Comments]
+      summary: List comments on an event post
+      description: |
+        Retrieves comments for a specific post. 
+        - Leave `parentCommentId` empty to fetch root-level comments. 
+        - Provide `parentCommentId` to fetch direct replies to a specific comment.
+        - The API enforces a maximum thread depth of 3 (root -> reply -> reply to reply).
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+        - $ref: '#/components/parameters/ParentCommentIdParam'
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommentSummary'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Comments]
+      summary:  Post a new comment or reply
+      description: |
+         Adds a comment to an event. 
+         - Omit `parentCommentId` to post a top-level comment. 
+         - Include `parentCommentId` to post a reply. The server will reject attempts to exceed the maximum depth limit (depth > 2).
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /comments/{commentId}:
+    patch:
+      tags: [Comments]
+      summary: Edit an existing comment (author only)
+      description: Updates the text content of a comment. Only the original author can perform this action.
+      parameters:
+        - $ref: '#/components/parameters/CommentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentUpdateRequest'
+      responses:
+        '200':
+          description: Comment successfully deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Comments]
+      summary: Soft-delete a comment
+      description: |
+        Marks a comment as deleted. The text content is cleared, but the structural record remains 
+        to preserve the thread hierarchy for any existing replies.
+      parameters:
+        - $ref: '#/components/parameters/CommentIdParam'
+      responses:
+        '204':
+          description: Comment successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /posts/{postId}/reaction:
+    put:
+      tags: [Reactions]
+      summary: Add or update reaction
+      description: Sets the authenticated user's reaction for a specific post. Overwrites any previous reaction.
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionRequest'
+      responses:
+        '204':
+          description: Reaction saved successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Reactions]
+      summary: Remove reaction
+      description: Clears the authenticated user's reaction from the specified post.
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      responses:
+        '204':
+          description: Reaction removed successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /posts/{postId}/participation:
+    put:
+      tags: [Participation]
+      summary: Set participation status
+      description: Declares the authenticated user's intention to attend or take part in the event.
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipationRequest'
+      responses:
+        '204':
+          description: Participation status saved
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Participation]
+      summary: Remove participation status
+      description: Clears the participation declaration for the specified event.
+      parameters:
+        - $ref: '#/components/parameters/PostIdParam'
+      responses:
+        '204':
+          description: Participation status removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /media/uploads/init:
+    post:
+      tags: [Media]
+      summary: Initialize direct S3 file upload
+      description: |
+        The first step of the client-side upload flow. 
+        The server creates a media record in `PENDING` status and generates a presigned PUT URL 
+        pointing to the target S3 bucket.
+        
+        **Client Flow:**
+        1. Receive `uploadUrl` and required headers from this response.
+        2. Execute an HTTP `PUT` request to the `uploadUrl` with the file binary and specified headers.
+        3. Finalize the process by calling `POST /media/uploads/{mediaId}/complete`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUploadInitRequest'
+      responses:
+        '201':
+          description: Presigned URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaUploadInitResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /media/uploads/{mediaId}/complete:
+    post:
+      tags: [Media]
+      summary: Confirm completion of a direct upload
+      description: |
+        Called by the client after the file has been successfully `PUT` to the presigned S3 URL. 
+        The server transitions the media status from `PENDING` to `UPLOADED`, making it available 
+        for attachment to posts or profiles.
+      parameters:
+        - $ref: '#/components/parameters/MediaIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaCompleteRequest'
+      responses:
+        '200':
+          description: Media confirmed and marked as uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaResource'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict - Media already confirmed or upload not found
+
+  /media/{mediaId}:
+    get:
+      tags: [Media]
+      summary: Retrieve media metadata and a presigned access by GET URL
+      description: |
+        Returns metadata for a specific media item, including a newly generated, time-limited 
+        presigned GET URL. The browser uses this URL to display the media directly from S3.
+      parameters:
+        - $ref: '#/components/parameters/MediaIdParam'
+      responses:
+        '200':
+          description: Media metadata with presigned access URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaResource'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Media]
+      summary: Delete a media file (owner only)
+      description: |
+        Removes the media object from S3 storage and marks the database record as `DELETED`. 
+        Fails with a 409 Conflict if the media is currently in active use (e.g., set as a profile picture).
+      parameters:
+        - $ref: '#/components/parameters/MediaIdParam'
+      responses:
+        '204':
+          description: Media successfully deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict - Media is currently in use and cannot be deleted.
+
+  /event-categories:
+    get:
+      tags: [Dictionaries]
+      summary: List all available event categories
+      description: Fetches the predefined list of event classifications.
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /country-codes:
+    get:
+      tags: [Dictionaries]
+      summary: List supported country codes
+      description: Retrieves all supported ISO 3166-1 alpha-3 country codes.
+      responses:
+        '200':
+          description: List of country codes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CountryCode'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Access token issued by Keycloak. 
+        Include in the Authorization header as `Authorization: Bearer <token>`.
+    keycloakAuth:
+      type: oauth2
+      description: |
+        OAuth2 Authorization Code flow for interactive API documentation tools. 
+        Update the authorization and token URLs to match the target environment.
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:8180/realms/coolture-dev/protocol/openid-connect/auth
+          tokenUrl: http://localhost:8180/realms/coolture-dev/protocol/openid-connect/token
+          scopes:
+            openid: OpenID Connect scope
+            profile: Read basic profile claims
+            
+
+  parameters:
+    # Pagination & common
+    CursorParam:
+      name: cursor
+      in: query
+      description: Opaque cursor string from a previous page response. Omit for the first page.
+      schema:
+        type: string
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    QueryParam:
+      name: q
+      in: query
+      description: Free text search query (searches titles, descriptions, and tags).
+      schema:
+        type: string
+        maxLength: 100
+    ParentCommentIdParam:
+      name: parentCommentId
+      in: query
+      description: |
+        UUID of the parent comment. 
+        - Empty/null: Returns root comments. 
+        - Provided: Returns direct replies to the specified comment.
+      schema:
+        type: string
+        format: uuid
+
+    # Path parameters
+    UserIdParam:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PostIdParam:
+      name: postId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CommentIdParam:
+      name: commentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MediaIdParam:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UsernameParam:
+      name: username
+      in: path
+      description: Unique username handle of the user.
+      required: true
+      schema:
+        type: string
+        maxLength: 32
+
+    # Post filtering
+    CategoryIdParam:
+      name: categoryId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    TagsParam:
+      name: tags
+      in: query
+      description: Repeatable parameter (e.g., `?tags=music&tags=gallery`).
+      style: form
+      explode: true # generate separate param for each array element
+      schema:
+        type: array
+        items:
+          type: string
+          maxLength: 32
+    AuthorIdParam:
+      name: authorId
+      in: query
+      schema:
+        type: string
+        format: uuid
+    StatusParam:
+      name: status
+      in: query
+      schema:
+        $ref: '#/components/schemas/PostStatus'
+    VisibilityParam:
+      name: visibility
+      in: query
+      schema:
+        $ref: '#/components/schemas/PostVisibility'
+    TypeParam:
+      name: type
+      in: query
+      schema:
+        $ref: '#/components/schemas/PostType'
+    StartsFromParam:
+      name: startsFrom
+      in: query
+      description: Filter events starting on or after this ISO 8601 timestamp.
+      schema:
+        type: string
+        format: date-time
+    StartsToParam:
+      name: startsTo
+      in: query
+      description: Filter events starting on or before this ISO 8601 timestamp.
+      schema:
+        type: string
+        format: date-time
+    LatitudeParam:
+      name: latitude
+      in: query
+      description: Latitude coordinate for geo-spatial search (WGS84).
+      schema:
+        type: number
+        format: double
+        minimum: -90
+        maximum: 90
+    LongitudeParam:
+      name: longitude
+      in: query
+      description: Longitude coordinate for geo-spatial search (WGS84).
+      schema:
+        type: number
+        format: double
+        minimum: -180
+        maximum: 180
+    RadiusKmParam:
+      name: radiusKm
+      in: query
+      description: Search radius in kilometers. Used in conjunction with `latitude` and `longitude`.
+      schema:
+        type: number
+        format: double
+        minimum: 0.1
+        maximum: 500
+
+  schemas:
+    # Generic
+    ProblemDetails:
+      type: object
+      required: [type, title, status, detail, traceId]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: ["string", "null"]
+          format: uri
+        traceId:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: [array, "null"]
+            items:
+              type: string
+          description: Field level validation errors.
+
+    PaginationMeta:
+      type: object
+      required: [limit, hasMore]
+      properties:
+        limit:
+          type: integer
+        hasMore:
+          type: boolean
+        nextCursor:
+          type: ["string", "null"]
+          description: Cursor value to be used for the next page request.
+
+    # Dictionaries
+    CountryCode:
+      type: object
+      required: [code]
+      properties:
+        code:
+          description: ISO 3166-1 alpha-3 country code.
+          type: string
+          minLength: 3
+          maxLength: 3
+          examples: [POL]
+
+    Category:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 32
+          examples: [music]
+
+    # Media
+    MediaPurpose:
+      type: string
+      enum:
+        - profile_image
+        - profile_image_thumbnail
+        - event_cover
+        - event_media
+
+    MediaStatus:
+      type: string
+      enum: [PENDING, UPLOADED, ATTACHED, DELETED]
+
+    MediaResource:
+      type: object
+      required: [id, purpose, mimeType, sizeBytes, status, url, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        purpose:
+          $ref: '#/components/schemas/MediaPurpose'
+        mimeType:
+          type: string
+          maxLength: 64
+          examples: [image/jpeg]
+        sizeBytes:
+          type: integer
+          format: int64
+        status:
+          $ref: '#/components/schemas/MediaStatus'
+        url:
+          type: string
+          format: uri
+          description: |
+            Time-limited presigned GET URL. Clients should cache this URL until expiration 
+            to reduce backend load. Direct access to the S3 object without this signature is denied.
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: ["string", "null"]
+          format: date-time
+
+    MediaUploadInitRequest:
+      type: object
+      required: [purpose, mimeType, sizeBytes, fileName]
+      properties:
+        purpose:
+          $ref: '#/components/schemas/MediaPurpose'
+        mimeType:
+          type: string
+          maxLength: 64
+        sizeBytes:
+          type: integer
+          format: int64
+          minimum: 1
+        fileName:
+          type: string
+          maxLength: 255
+
+    MediaUploadInitResponse:
+      type: object
+      required: [mediaId, objectKey, uploadUrl, httpMethod, expiresAt, requiredHeaders]
+      properties:
+        mediaId:
+          type: string
+          format: uuid
+        objectKey:
+          type: string
+        uploadUrl:
+          type: string
+          format: uri
+          description: Presigned PUT URL where the file binary should be sent.
+        httpMethod:
+          type: string
+          enum: [PUT]
+        expiresAt:
+          type: string
+          format: date-time
+        requiredHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            Required HTTP headers for the PUT request (e.g., `Content-Type`, `Content-Length`). 
+            Failing to include these will result in a signature mismatch.
+
+    MediaCompleteRequest:
+      type: object
+      properties:
+        etag:
+          type: string
+          description: |
+            Entity Tag is file version identifier that is returned
+            by S3 after successful upload. Usually MD5 hash from content.
+            Needed to verify file exists in S3 and was not manipulated.
+
+    # Users
+    UserSummary:
+      type: object
+      required: [id, username, firstName, lastName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+          maxLength: 32
+        firstName:
+          type: string
+          maxLength: 128
+        lastName:
+          type: string
+          maxLength: 128
+        avatar:
+          oneOf:
+            - $ref: '#/components/schemas/MediaResource'
+            - type: 'null'
+        followersCount:
+          type: integer
+          minimum: 0
+        followingCount:
+          type: integer
+          minimum: 0
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          required: [createdAt]
+          properties:
+            bio:
+              type: ["string", "null"]
+              maxLength: 512
+            createdAt:
+              type: string
+              format: date-time
+            isFollowing:
+              type: boolean
+              description: Indicates if the authenticated user follows this profile.
+            isBlocked:
+              type: boolean
+              description: Indicates if the authenticated user blocks this profile.
+
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          maxLength: 32
+        firstName:
+          type: string
+          maxLength: 128
+        lastName:
+          type: string
+          maxLength: 128
+        bio:
+          type: ["string", "null"]
+          maxLength: 512
+      minProperties: 1
+
+    # Location
+    GeoPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+
+    EventLocation:
+      type: object
+      required: [countryCode, postalCode, city, coordinates]
+      properties:
+        id:
+          type: ["string", "null"]
+          format: uuid
+        countryCode:
+          type: string
+          maxLength: 3
+        venueName:
+          type: ["string", "null"]
+          maxLength: 64
+        buildingNum:
+          type: ["string", "null"]
+          maxLength: 16
+        street:
+          type: ["string", "null"]
+          maxLength: 128
+        postalCode:
+          type: string
+          maxLength: 16
+        city:
+          type: string
+          maxLength: 128
+        coordinates:
+          $ref: '#/components/schemas/GeoPoint'
+
+    # Posts
+    PostType:
+      type: string
+      enum: [OFFLINE, ONLINE]
+    PostStatus:
+      type: string
+      enum: [ACTIVE, EDITED, DELETED]
+    PostVisibility:
+      type: string
+      enum: [PUBLIC, PRIVATE, FRIENDS]
+    ReactionType:
+      type: string
+      enum: [like, dislike]
+    ParticipationType:
+      type: string
+      enum: [interested, takes_part]
+
+    PostMedia:
+      type: object
+      required: [media, position, isCover]
+      properties:
+        media:
+          $ref: '#/components/schemas/MediaResource'
+        position:
+          type: integer
+          description: Display order index for this media item.
+          minimum: 0
+        isCover:
+          type: boolean
+          description: Marks this media as the primary cover image for the event.
+
+    PostBase:
+      type: object
+      required:
+        - id
+        - author
+        - category
+        - title
+        - description
+        - startsAt
+        - positiveReactionCount
+        - negativeReactionCount
+        - participantCount
+        - commentsCount
+        - type
+        - status
+        - visibility
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        author:
+          $ref: '#/components/schemas/UserSummary'
+        category:
+          $ref: '#/components/schemas/Category'
+        location:
+          oneOf:
+            - $ref: '#/components/schemas/EventLocation'
+            - type: 'null'
+          description: Required for OFFLINE events, null for ONLINE events.
+        title:
+          type: string
+          maxLength: 32
+        description:
+          type: string
+          maxLength: 1024
+        eventUrl:
+          type: ["string", "null"]
+          format: uri
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+        positiveReactionCount:
+          type: integer
+          minimum: 0
+        negativeReactionCount:
+          type: integer
+          minimum: 0
+        participantCount:
+          type: integer
+          minimum: 0
+        commentsCount:
+          type: integer
+          minimum: 0
+        type:
+          $ref: '#/components/schemas/PostType'
+        status:
+          $ref: '#/components/schemas/PostStatus'
+        visibility:
+          $ref: '#/components/schemas/PostVisibility'
+        createdAt:
+          type: string
+          format: date-time
+        lastModifiedAt:
+          type: ["string", "null"]
+          format: date-time
+        deletedAt:
+          type: ["string", "null"]
+          format: date-time
+        myReaction:
+          oneOf:
+            - $ref: '#/components/schemas/ReactionType'
+            - type: 'null'
+          description: Reaction of the authenticated user, if any.
+        myParticipation:
+          oneOf:
+            - $ref: '#/components/schemas/ParticipationType'
+            - type: 'null'
+          description: Participation status of the authenticated user, if any.
+        coverMedia:
+          oneOf:
+            - $ref: '#/components/schemas/MediaResource'
+            - type: 'null'
+
+    PostCard:
+      allOf:
+        - $ref: '#/components/schemas/PostBase'
+      description: Optimized for feed – author is UserSummary, media list omitted.
+
+    PostDetail:
+      allOf:
+        - $ref: '#/components/schemas/PostBase'
+        - type: object
+          properties:
+            media:
+              type: array
+              items:
+                $ref: '#/components/schemas/PostMedia'
+      description: Full post details including attached media.
+
+    PostCreateRequest:
+      type: object
+      required: [categoryId, title, description, startsAt, type]
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 32
+        description:
+          type: string
+          maxLength: 1024
+        eventUrl:
+          type: ["string", "null"]
+          format: uri
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+          maxItems: 10
+        type:
+          $ref: '#/components/schemas/PostType'
+        visibility:
+          $ref: '#/components/schemas/PostVisibility'
+        location:
+          oneOf:
+            - $ref: '#/components/schemas/EventLocation'
+            - type: 'null'
+          description: Required for OFFLINE, ignored for ONLINE.
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+          description: Already uploaded media to attach.
+        coverMediaId:
+          type: ["string", "null"]
+          format: uuid
+
+    PostUpdateRequest:
+      type: object
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 32
+        description:
+          type: string
+          maxLength: 1024
+        eventUrl:
+          type: ["string", "null"]
+          format: uri
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+            maxLength: 32
+          maxItems: 10
+        type:
+          $ref: '#/components/schemas/PostType'
+        visibility:
+          $ref: '#/components/schemas/PostVisibility'
+        location:
+          oneOf:
+            - $ref: '#/components/schemas/EventLocation'
+            - type: 'null'
+        mediaIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+        coverMediaId:
+          type: ["string", "null"]
+          format: uuid
+      minProperties: 1
+
+    # Comments
+    CommentStatus:
+      type: string
+      enum: [ACTIVE, DELETED]
+
+    CommentSummary:
+      type: object
+      required:
+        - id
+        - postId
+        - author
+        - content
+        - depth
+        - repliesCount
+        - createdAt
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        postId:
+          type: string
+          format: uuid
+        rootCommentId:
+          type: ["string", "null"]
+          format: uuid
+        parentCommentId:
+          type: ["string", "null"]
+          format: uuid
+        author:
+          $ref: '#/components/schemas/UserSummary'
+        content:
+          type: string
+          maxLength: 512
+        depth:
+          type: integer
+          minimum: 0
+          maximum: 2
+          description: 0=root, 1=reply, 2=reply to reply
+        repliesCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        lastEditedAt:
+          type: ["string", "null"]
+          format: date-time
+        deletedAt:
+          type: ["string", "null"]
+          format: date-time
+        status:
+          $ref: '#/components/schemas/CommentStatus'
+
+    CommentCreateRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          maxLength: 512
+        parentCommentId:
+          type: ["string", "null"]
+          format: uuid
+          description: Omit for root comment; include to reply.
+
+    CommentUpdateRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          maxLength: 512
+
+    ReactionRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: '#/components/schemas/ReactionType'
+
+    ParticipationRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          $ref: '#/components/schemas/ParticipationType'
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Forbidden:
+      description: Authenticated but not allowed
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
