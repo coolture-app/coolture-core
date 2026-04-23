@@ -2,11 +2,6 @@
 name: Gateway Tests
 
 on:
-  push:
-    branches: ["main", "dev"]
-    paths:
-      - "gateway/**"
-      - ".github/workflows/gateway-tests.yml"
   pull_request:
     paths:
       - "gateway/**"

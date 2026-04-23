@@ -2,11 +2,6 @@
 name: REST API Tests
 
 on:
-  push:
-    branches: ["main", "dev"]
-    paths:
-      - "rest-api/**"
-      - ".github/workflows/rest-api-tests.yml"
   pull_request:
     paths:
       - "rest-api/**"
