@@ -106,7 +106,7 @@ Table posts {
     ]
     starts_at timestamptz [
         not null,
-        check: `starts_at > now()`,
+        check: `starts_at > created_at`,
         note: 'event start datetime'
     ]
     ends_at timestamptz [
@@ -261,6 +261,16 @@ Table comments {
         default: null,
         note: 'used for soft deletetion so child comments do not become orphans'
     ]
+    status varchar(32) [
+        not null,
+        check: `status in ('ACTIVE', 'DELETED')`,
+        note: 
+        '''
+            ACTIVE - created & published
+            DELETED - post was deleted, can be archived or be completely removed
+            not enum bcs it can change
+        '''
+    ]
 
     Note: 
     '''
@@ -412,6 +422,13 @@ Enum media_purpose {
     event_media
 }
 
+Enum media_status {
+    PENDING 
+    UPLOADED
+    ATTACHED
+    DELETED
+}
+
 Table media {
     id uuid [
         pk,
@@ -430,6 +447,10 @@ Table media {
             purpose/ownerId/uuid.extension
         '''
     ]
+    file_name varchar [
+        not null,
+        note: 'name of the file that was sent'
+    ]
     purpose media_purpose [
         not null
     ]
@@ -442,6 +463,13 @@ Table media {
     created_at timestamptz [
         not null,
         default: 'now()'
+    ]
+    deleted_at timestamptz [
+        null
+    ]
+    status media_status [
+        not null,
+        note: 'describes current media state (for soft deletion/periodic deletion)'
     ]
 
     Note:
