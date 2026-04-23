@@ -106,7 +106,7 @@ Table posts {
     ]
     starts_at timestamptz [
         not null,
-        check: `starts_at > now()`,
+        check: `starts_at > created_at`,
         note: 'event start datetime'
     ]
     ends_at timestamptz [
