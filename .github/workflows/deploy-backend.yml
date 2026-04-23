@@ -1,0 +1,40 @@
+---
+name: Deploy Backend
+
+on:
+  push:
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy with Docker Compose
+    runs-on: [self-hosted, deployer]
+    concurrency:
+      group: deploy-backend
+      cancel-in-progress: false
+    env:
+      DEPLOY_DIR: /home/admin/coolture/dev/backend
+      DEPLOY_HOST_NAME: ${{ vars.DEPLOY_HOST_NAME }}
+
+    steps:
+      - name: Update deploy repository
+        run: |
+          if [ ! -d "$DEPLOY_DIR/.git" ]; then
+            echo "Missing git repository in $DEPLOY_DIR"
+            exit 1
+          fi
+
+          git -C "$DEPLOY_DIR" fetch --all --prune
+          git -C "$DEPLOY_DIR" checkout "$GITHUB_REF_NAME"
+          git -C "$DEPLOY_DIR" pull --ff-only origin "$GITHUB_REF_NAME"
+
+      - name: Generate environment file first
+        run: |
+          HOST_NAME_VALUE="${DEPLOY_HOST_NAME:-localhost}"
+          make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE"
+        working-directory: /home/admin/coolture/dev
+
+      - name: Deploy backend stack
+        run: docker-compose -f docker-compose.base.yml -f docker-compose.app.yml up --build -d
+        working-directory: /home/admin/coolture/dev
