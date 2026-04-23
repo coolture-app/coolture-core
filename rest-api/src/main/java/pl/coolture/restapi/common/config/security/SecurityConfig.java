@@ -1,25 +1,30 @@
 package pl.coolture.restapi.common.config.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@RequiredArgsConstructor
 public class SecurityConfig {
+  private final UserProvisioningFilter userProvisioningFilter;
+
   @Bean
   public SecurityFilterChain securityFilterChain(
       HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
     return http
         // disable CSRF bcs this is stateless API
         .csrf(AbstractHttpConfigurer::disable)
+        .cors(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
@@ -29,12 +34,12 @@ public class SecurityConfig {
                         "/api-docs/**",
                         "/h2-console/**")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/posts/**", "/posts")
-                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .oauth2ResourceServer(
-            oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+            oauth2 -> oauth2.jwt(
+                    jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
+            .addFilterAfter(userProvisioningFilter, BearerTokenAuthenticationFilter.class)
         .build();
   }
 

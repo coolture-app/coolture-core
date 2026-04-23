@@ -15,10 +15,10 @@ import pl.coolture.restapi.dtos.Post.GetPostDTO;
 import pl.coolture.restapi.exceptionHandlers.exceptionTypes.NotFoundException;
 import pl.coolture.restapi.models.Location;
 import pl.coolture.restapi.models.Post;
-import pl.coolture.restapi.models.User;
+import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.repositories.LocationRepository;
 import pl.coolture.restapi.repositories.PostRepository;
-import pl.coolture.restapi.repositories.UserRepository;
+import pl.coolture.restapi.user.domain.UserRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -33,10 +33,6 @@ public class PostService {
         userRepository
             .findById(dto.getAuthorUuid())
             .orElseThrow(() -> new NotFoundException("Author doesn't exist."));
-    Location location =
-        locationRepository
-            .findById(dto.getLocationUuid())
-            .orElseThrow(() -> new NotFoundException("The location doesn't exist."));
 
     List<UUID> savedPhotosUuids = imageService.saveImages(images, "posts");
 
@@ -45,7 +41,6 @@ public class PostService {
             .title(dto.getTitle())
             .author(author)
             .dateOfEvent(dto.getDateOfEvent())
-            .location(location)
             .description(dto.getDescription())
             .photosUUID(savedPhotosUuids)
             .likesCount(0)

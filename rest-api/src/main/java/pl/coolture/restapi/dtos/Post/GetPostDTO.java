@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
 import pl.coolture.restapi.models.Post;
+import pl.coolture.restapi.user.UserMinDTO;
 
 @Data
 @Builder
@@ -31,7 +32,6 @@ public class GetPostDTO {
         .user(UserMinDTO.fromEntity(post.getAuthor()))
         .dateOfEvent(post.getDateOfEvent())
         .dateOfPosting(post.getDateOfPosting())
-        .location(EventLocationDTO.fromEntity(post.getLocation()))
         .description(post.getDescription())
         .photos(
             post.getPhotosUUID() != null

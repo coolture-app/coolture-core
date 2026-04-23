@@ -1,9 +1,9 @@
-package pl.coolture.restapi.dtos.Post;
+package pl.coolture.restapi.user;
 
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
-import pl.coolture.restapi.models.User;
+import pl.coolture.restapi.user.domain.User;
 
 @Data
 @Builder

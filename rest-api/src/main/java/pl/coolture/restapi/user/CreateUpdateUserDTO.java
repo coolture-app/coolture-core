@@ -1,4 +1,4 @@
-package pl.coolture.restapi.dtos.User;
+package pl.coolture.restapi.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -9,7 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import pl.coolture.restapi.models.User;
+import pl.coolture.restapi.user.domain.User;
 
 @Data
 @NoArgsConstructor

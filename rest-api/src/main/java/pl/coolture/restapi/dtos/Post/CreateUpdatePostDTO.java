@@ -34,9 +34,6 @@ public class CreateUpdatePostDTO {
   @Future(message = "Event cannot take place in past")
   private LocalDateTime dateOfEvent;
 
-  @NotNull(message = "Location is required")
-  private UUID locationUuid;
-
   @NotBlank(message = "Description is required")
   @Size(max = 2000)
   private String description;
@@ -47,7 +44,6 @@ public class CreateUpdatePostDTO {
         .title(post.getTitle())
         .authorUuid(post.getAuthor().getId())
         .dateOfEvent(post.getDateOfEvent())
-        .locationUuid(post.getLocation().getUuid())
         .description(post.getDescription())
         .build();
   }

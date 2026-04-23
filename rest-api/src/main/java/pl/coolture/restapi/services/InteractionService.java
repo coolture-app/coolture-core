@@ -12,11 +12,11 @@ import pl.coolture.restapi.exceptionHandlers.exceptionTypes.NotFoundException;
 import pl.coolture.restapi.models.Post;
 import pl.coolture.restapi.models.PostComment;
 import pl.coolture.restapi.models.PostInteraction;
-import pl.coolture.restapi.models.User;
+import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.repositories.PostCommentRepository;
 import pl.coolture.restapi.repositories.PostInteractionRepository;
 import pl.coolture.restapi.repositories.PostRepository;
-import pl.coolture.restapi.repositories.UserRepository;
+import pl.coolture.restapi.user.domain.UserRepository;
 import pl.coolture.restapi.utils.InteractionChangeInfo;
 
 @Service

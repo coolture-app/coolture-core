@@ -11,6 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import pl.coolture.restapi.models.PostComment;
+import pl.coolture.restapi.user.UserMinDTO;
 
 @Data
 @Builder

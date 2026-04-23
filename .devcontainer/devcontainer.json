@@ -1,55 +1,14 @@
 {
   "name": "Dev Environment Coolture Backend API",
 
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose-dev.yml"],
+  "dockerComposeFile": ["../docker-compose.base.yml", "docker-compose-dev.yml"],
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
 
   "forwardPorts": [
-    3900,   // Garage S3 API
-    3910,   // Garage Admin API
-    3920,   // Garage UI
-    5432,   // PostgreSQL
     8080,   // Gateway
     8081,   // REST API
-    8180,   // Keycloak Admin Console
-    8181    // Keycloak Management
   ],
-
-  "portsAttributes": {
-    "3900": {
-      "label": "Garage S3 API",
-      "onAutoForward": "notify"
-    },
-    "3910": {
-      "label": "Garage Admin API",
-      "onAutoForward": "notify"
-    },
-    "3920": {
-      "label": "Garage UI",
-      "onAutoForward": "notify"
-    },
-    "5432": {
-      "label": "PostgreSQL",
-      "onAutoForward": "notify"
-    },
-    "8080": {
-      "label": "Gateway",
-      "onAutoForward": "notify"
-    },
-    "8081": {
-      "label": "REST API",
-      "onAutoForward": "notify"
-    },
-    "8180": {
-      "label": "Keycloak Admin Console",
-      "onAutoForward": "notify"
-    },
-    "8181": {
-      "label": "Keycloak Management",
-      "onAutoForward": "notify"
-    }
-  },
 
   // Enviroment installs
   "features": {

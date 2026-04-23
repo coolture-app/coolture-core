@@ -1,11 +1,11 @@
 services:
   s3garage:
     image: dxflrs/garage:v2.2.0
-    hostname: ${GARAGE_HOSTNAME:-s3garage}
+    hostname: ${GARAGE_API_INTERNAL_HOSTNAME:-s3garage}
     restart: unless-stopped
     ports:
-      - "${GARAGE_API_HOST_PORT:-3900}:3900"
-      - "${GARAGE_ADMIN_HOST_PORT:-3910}:3910"
+      - "${GARAGE_API_HOST_PORT:-3900}:${GARAGE_API_INTERNAL_PORT:-3900}"
+      - "${GARAGE_ADMIN_HOST_PORT:-3910}:${GARAGE_ADMIN_INTERNAL_PORT:-3910}"
     networks:
       - devnet
     volumes:
@@ -19,17 +19,18 @@ services:
 
   s3garage-ui:
     image: khairul169/garage-webui:latest
+    hostname: ${GARAGE_UI_INTERNAL_HOSTNAME:-s3garage-ui}
     restart: unless-stopped
     volumes:
       - ./garage/garage.toml:/etc/garage.toml:ro
     ports:
-      - "${GARAGE_UI_HOST_PORT:-3920}:3909"
+      - "${GARAGE_UI_HOST_PORT:-3920}:${GARAGE_UI_INTERNAL_PORT:-3909}"
     networks:
       - devnet
     environment:
-      - API_BASE_URL=http://${GARAGE_HOSTNAME:-s3garage}:3910
+      - API_BASE_URL=http://${GARAGE_API_INTERNAL_HOSTNAME:-s3garage}:${GARAGE_ADMIN_INTERNAL_PORT:-3910}
       - API_ADMIN_KEY=${GARAGE_ADMIN_TOKEN}
-      - S3_ENDPOINT_URL=http://${GARAGE_HOSTNAME:-s3garage}:3900
+      - S3_ENDPOINT_URL=http://${GARAGE_API_INTERNAL_HOSTNAME:-s3garage}:${GARAGE_API_INTERNAL_PORT:-3900}
       - S3_REGION=${GARAGE_REGION:-garage}
 
   s3-init:
@@ -53,13 +54,13 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.5
-    hostname: ${KEYCLOAK_HOSTNAME:-keycloak}
+    hostname: ${KEYCLOAK_INTERNAL_HOSTNAME:-keycloak}
     env_file: .env
     environment:
       KC_HEALTH_ENABLED: "true"
       KC_HTTP_ENABLED: "true" # Enable non secure HTTP for development
-      KC_HOSTNAME: localhost
-      KC_HTTP_PORT: ${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME: ${HOST_NAME}
+      KC_HTTP_PORT: ${KEYCLOAK_HOST_PORT:-8180}
       KC_HTTP_MANAGEMENT_PORT: ${KEYCLOAK_MANAGEMENT_PORT:-8181}
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
@@ -71,8 +72,8 @@ services:
       - ./keycloak/import:/opt/keycloak/data/import:ro
       - ./keycloak/export:/tmp/export
     ports:
-      - ${KEYCLOAK_PORT:-8180}:8180
-      - ${KEYCLOAK_MANAGEMENT_PORT:-8181}:8181
+      - ${KEYCLOAK_HOST_PORT:-8180}:${KEYCLOAK_INTERNAL_PORT:-8180}
+      - ${KEYCLOAK_MANAGEMENT_HOST_PORT:-8181}:${KEYCLOAK_MANAGEMENT_INTERNAL_PORT:-8181}
     networks:
       - devnet
     healthcheck:
@@ -96,7 +97,7 @@ services:
 
   postgres:
     image: postgres:18.3-alpine
-    hostname: postgres
+    hostname: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
     env_file: .env
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
@@ -106,49 +107,14 @@ services:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql
     ports:
-      - 5432:5432
+      - ${POSTGRES_HOST_PORT:-5430}:${POSTGRES_INTERNAL_PORT:-5432}
     networks:
       - devnet
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-coolture_db} -h localhost -p 5432" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-coolture_db} -h localhost -p ${POSTGRES_INTERNAL_PORT:-5432}" ]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    hostname: app
-    env_file: .env
-    environment:
-      SPRING_PROFILES_ACTIVE: dev
-    ports:
-      - "${GATEWAY_HOST_PORT:-8080}:8080"
-      - "${REST_API_HOST_PORT:-8081}:8081"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-      s3-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/api/actuator/health | grep -q UP"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 120s
-    networks:
-      - devnet
-
-  frontend:
-    image: chriskondracki/coolture-frontend-dev:latest
-    restart: unless-stopped
-    ports:
-      - "${FRONTEND_HOST_PORT:-4000}:4000"
-    networks:
-      - devnet
 
 volumes:
   keycloak_data:
