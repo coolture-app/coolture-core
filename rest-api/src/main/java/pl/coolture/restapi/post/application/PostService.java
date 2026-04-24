@@ -1,0 +1,261 @@
+package pl.coolture.restapi.post.application;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pl.coolture.restapi.common.exceptions.ForbiddenException;
+import pl.coolture.restapi.common.exceptions.ResourceNotFoundException;
+import pl.coolture.restapi.common.pagination.CursorCodec;
+import pl.coolture.restapi.common.pagination.CursorPage;
+import pl.coolture.restapi.common.pagination.CursorPayload;
+import pl.coolture.restapi.dictionary.domain.EventCategory;
+import pl.coolture.restapi.dictionary.domain.EventCategoryRepository;
+import pl.coolture.restapi.media.domain.Media;
+import pl.coolture.restapi.media.domain.MediaRepository;
+import pl.coolture.restapi.post.api.PostMapper;
+import pl.coolture.restapi.post.api.dto.*;
+import pl.coolture.restapi.post.domain.Post;
+import pl.coolture.restapi.post.domain.PostMedia;
+import pl.coolture.restapi.post.domain.PostRepository;
+import pl.coolture.restapi.user.domain.User;
+import pl.coolture.restapi.user.domain.UserRepository;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class PostService {
+
+    private static final String TYPE_ONLINE  = "ONLINE";
+    private static final String TYPE_OFFLINE = "OFFLINE";
+    private static final String STATUS_ACTIVE  = "ACTIVE";
+    private static final String STATUS_EDITED  = "EDITED";
+    private static final String STATUS_DELETED = "DELETED";
+    private static final String VISIBILITY_PUBLIC = "PUBLIC";
+
+    private final PostRepository          postRepository;
+    private final UserRepository          userRepository;
+    private final EventCategoryRepository categoryRepository;
+    private final MediaRepository         mediaRepository;
+    private final PostMapper              postMapper;
+    private final CursorCodec             cursorCodec;
+
+    /**
+     * Paginated feed
+     *
+     * TODO visibility enforcement: currently the `visibility` param is a plain filter.
+     *  Proper rules (PRIVATE = author only, FRIENDS = followers only)
+     */
+    public CursorPage<PostCardDto> getFeed(PostFeedFilters f, String cursor, int limit) {
+        var payload = cursorCodec.decode(cursor);
+
+        String[] tagsArr = (f.tags() == null || f.tags().isEmpty())
+                ? null : f.tags().toArray(String[]::new);
+
+        Double radiusMeters = (f.radiusKm() == null) ? null : f.radiusKm() * 1000.0;
+
+        List<Post> rows = postRepository.findFeed(
+                blankToNull(f.q()),
+                f.categoryId(), tagsArr, f.authorId(),
+                f.status(), f.visibility(), f.type(),
+                f.startsFrom(), f.startsTo(),
+                f.latitude(), f.longitude(), radiusMeters,
+                payload.map(CursorPayload::createdAt).orElse(null),
+                payload.map(CursorPayload::id).orElse(null),
+                limit + 1);
+
+        List<PostCardDto> dtos = rows.stream().map(postMapper::toCard).toList();
+        return CursorPage.of(dtos, limit, PostCardDto::id, PostCardDto::createdAt, cursorCodec);
+    }
+
+    public PostDetailDto getById(UUID postId) {
+        return postMapper.toDetail(findActiveOrThrow(postId));
+    }
+
+    @Transactional
+    public PostDetailDto create(UUID callerId, PostCreateRequest req) {
+        validateTypeLocationInvariant(req.type(), req.location());
+        validateDateRange(req.startsAt(), req.endsAt());
+
+        User author = userRepository.getReferenceById(callerId);
+        EventCategory cat = categoryRepository.findById(req.categoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("EventCategory", req.categoryId()));
+
+        Post post = Post.builder()
+                .author(author)
+                .category(cat)
+                .location(postMapper.toLocationEntity(req.location()))
+                .title(req.title())
+                .description(req.description())
+                .eventUrl(req.eventUrl())
+                .startsAt(req.startsAt())
+                .endsAt(req.endsAt())
+                .tags(tagsToArray(req.tags()))
+                .type(req.type())
+                .status(STATUS_ACTIVE)
+                .visibility(req.visibility() != null ? req.visibility() : VISIBILITY_PUBLIC)
+                .createdAt(Instant.now())
+                .media(new ArrayList<>())
+                .build();
+
+        attachMedia(post, callerId, req.mediaIds(), req.coverMediaId());
+
+        post = postRepository.save(post);
+        return postMapper.toDetail(post);
+    }
+
+    @Transactional
+    public PostDetailDto update(UUID postId, UUID callerId, PostUpdateRequest req) {
+        Post post = findActiveOrThrow(postId);
+        requireAuthor(post, callerId);
+
+        // Resolve type + location (online events no location)
+        String newType = req.type() != null ? req.type() : post.getType();
+        boolean locationTouched = req.location() != null;
+        EventLocationDto newLocDto = locationTouched ? req.location() : postMapper.toLocationDto(post.getLocation());
+        validateTypeLocationInvariant(newType, newLocDto);
+
+        Instant newStartsAt = req.startsAt() != null ? req.startsAt() : post.getStartsAt();
+        Instant newEndsAt = req.endsAt() != null ? req.endsAt() : post.getEndsAt();
+        validateDateRange(newStartsAt, newEndsAt);
+
+        if (req.title()       != null) post.setTitle(req.title());
+        if (req.description() != null) post.setDescription(req.description());
+        if (req.eventUrl()    != null) post.setEventUrl(req.eventUrl());
+        if (req.startsAt()    != null) post.setStartsAt(req.startsAt());
+        if (req.endsAt()      != null) post.setEndsAt(req.endsAt());
+        if (req.tags()        != null) post.setTags(tagsToArray(req.tags()));
+        if (req.type()        != null) post.setType(req.type());
+        if (req.visibility()  != null) post.setVisibility(req.visibility());
+
+        if (req.categoryId() != null) {
+            post.setCategory(categoryRepository.findById(req.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("EventCategory", req.categoryId())));
+        }
+
+        if (locationTouched) {
+            if (TYPE_ONLINE.equals(newType)) {
+                post.setLocation(null);
+            } else if (post.getLocation() == null) {
+                post.setLocation(postMapper.toLocationEntity(req.location()));
+            } else {
+                postMapper.updateLocation(post.getLocation(), req.location());
+            }
+        } else if (TYPE_ONLINE.equals(newType)) {
+            // Type switched to ONLINE: drop any existing location.
+            post.setLocation(null);
+        }
+
+        if (req.mediaIds() != null) {
+            post.getMedia().clear();
+            attachMedia(post, callerId, req.mediaIds(), req.coverMediaId());
+        } else if (req.coverMediaId() != null) {
+            // Only the cover flag is being moved - keep media rows as-is.
+            updateCoverFlag(post, req.coverMediaId());
+        }
+
+        post.setStatus(STATUS_EDITED);
+        post.setLastModifiedAt(Instant.now());
+        return postMapper.toDetail(post);
+    }
+
+    @Transactional
+    public void softDelete(UUID postId, UUID callerId) {
+        Post post = findActiveOrThrow(postId);
+        requireAuthor(post, callerId);
+        post.setStatus(STATUS_DELETED);
+        post.setDeletedAt(Instant.now());
+    }
+
+    private Post findActiveOrThrow(UUID postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
+        if (STATUS_DELETED.equals(post.getStatus()) || post.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Post", postId);
+        }
+        return post;
+    }
+
+    private void requireAuthor(Post post, UUID callerId) {
+        if (!post.getAuthor().getId().equals(callerId)) {
+            throw new ForbiddenException("Only the author can modify this post");
+        }
+    }
+
+    private void validateTypeLocationInvariant(String type, EventLocationDto location) {
+        if (TYPE_OFFLINE.equals(type) && location == null) {
+            throw new ForbiddenException("OFFLINE posts require a location");
+        }
+        if (TYPE_ONLINE.equals(type) && location != null) {
+            throw new ForbiddenException("ONLINE posts cannot have a location");
+        }
+    }
+
+    private void validateDateRange(Instant startsAt, Instant endsAt) {
+        if (endsAt != null && !endsAt.isAfter(startsAt)) {
+            throw new ForbiddenException("endsAt must be after startsAt");
+        }
+    }
+
+    /**
+     * Validates every media ID, builds PostMedia rows in the given order
+     * and flips the cover flag on the matching row.
+     */
+    private void attachMedia(Post post, UUID callerId, List<UUID> mediaIds, UUID coverMediaId) {
+        if (mediaIds == null || mediaIds.isEmpty()) return;
+
+        if (new HashSet<>(mediaIds).size() != mediaIds.size()) {
+            throw new ForbiddenException("mediaIds must be unique");
+        }
+        if (coverMediaId != null && !mediaIds.contains(coverMediaId)) {
+            throw new ForbiddenException("coverMediaId must be present in mediaIds");
+        }
+
+        Map<UUID, Media> byId = mediaRepository.findAllById(mediaIds).stream()
+                .collect(Collectors.toMap(Media::getId, Function.identity()));
+
+        for (int i = 0; i < mediaIds.size(); i++) {
+            UUID mid = mediaIds.get(i);
+            Media m = byId.get(mid);
+            if (m == null || "DELETED".equals(m.getStatus())) {
+                throw new ResourceNotFoundException("Media", mid);
+            }
+            if (!m.getOwnerId().equals(callerId)) {
+                throw new ForbiddenException("You do not own media " + mid);
+            }
+            post.getMedia().add(PostMedia.builder()
+                    .post(post)
+                    .media(m)
+                    .position(i)
+                    .isCover(mid.equals(coverMediaId))
+                    .build());
+        }
+    }
+
+    private void updateCoverFlag(Post post, UUID coverMediaId) {
+        boolean found = false;
+        for (PostMedia pm : post.getMedia()) {
+            boolean match = pm.getMedia().getId().equals(coverMediaId);
+            pm.setCover(match);
+            found = found || match;
+        }
+        if (!found) {
+            throw new ForbiddenException("coverMediaId is not attached to this post");
+        }
+    }
+
+    private static String[] tagsToArray(List<String> tags) {
+        return tags == null ? null : tags.toArray(String[]::new);
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
+    }
+}
