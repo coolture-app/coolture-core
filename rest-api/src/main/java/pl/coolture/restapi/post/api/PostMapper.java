@@ -1,0 +1,105 @@
+package pl.coolture.restapi.post.api;
+
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.springframework.beans.factory.annotation.Autowired;
+import pl.coolture.restapi.common.mapper.BaseMapperConfig;
+import pl.coolture.restapi.dictionary.api.DictionaryMapper;
+import pl.coolture.restapi.media.api.dto.MediaResourceDto;
+import pl.coolture.restapi.media.application.MediaService;
+import pl.coolture.restapi.post.api.dto.EventLocationDto;
+import pl.coolture.restapi.post.api.dto.GeoPointDto;
+import pl.coolture.restapi.post.api.dto.PostCardDto;
+import pl.coolture.restapi.post.api.dto.PostDetailDto;
+import pl.coolture.restapi.post.api.dto.PostMediaDto;
+import pl.coolture.restapi.post.domain.EventLocation;
+import pl.coolture.restapi.post.domain.Post;
+import pl.coolture.restapi.post.domain.PostMedia;
+import pl.coolture.restapi.user.api.UserMapper;
+
+@Mapper(
+        config = BaseMapperConfig.class,
+        uses = {UserMapper.class, DictionaryMapper.class}
+)
+public abstract class PostMapper {
+
+    private static final GeometryFactory GEOMETRY_FACTORY =
+            new GeometryFactory(new PrecisionModel(), 4326);
+
+    @Autowired
+    protected MediaService mediaService;
+
+    @Mapping(target = "myReaction", expression = "java(null)")
+    @Mapping(target = "myParticipation", expression = "java(null)")
+    @Mapping(target = "coverMedia", expression = "java(extractCoverMedia(p.getMedia()))")
+    public abstract PostCardDto toCard(Post p);
+
+    @Mapping(target = "myReaction", expression = "java(null)")
+    @Mapping(target = "myParticipation", expression = "java(null)")
+    @Mapping(target = "coverMedia", expression = "java(extractCoverMedia(p.getMedia()))")
+    @Mapping(target = "media", expression = "java(mapMediaList(p.getMedia()))")
+    public abstract PostDetailDto toDetail(Post p);
+
+    @Mapping(target = "coordinates", source = "coordinates")
+    public abstract EventLocationDto toLocationDto(EventLocation loc);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "coordinates", source = "coordinates")
+    public abstract EventLocation toLocationEntity(EventLocationDto dto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "coordinates", source = "coordinates")
+    public abstract void updateLocation(@MappingTarget EventLocation loc, EventLocationDto dto);
+
+    protected GeoPointDto map(Point c) {
+        if (c == null) return null;
+        // JTS Point: x = longitude, y = latitude
+        return new GeoPointDto(c.getY(), c.getX());
+    }
+
+    protected Point map(GeoPointDto g) {
+        if (g == null) return null;
+        // Coordinate(x, y) = (longitude, latitude)
+        Point p = GEOMETRY_FACTORY.createPoint(new Coordinate(g.longitude(), g.latitude()));
+        p.setSRID(4326);
+        return p;
+    }
+
+    protected List<String> map(String[] tags) {
+        return tags == null ? List.of() : Arrays.asList(tags);
+    }
+
+    protected List<PostMediaDto> mapMediaList(List<PostMedia> media) {
+        if (media == null) return List.of();
+
+        return media.stream()
+                .sorted(Comparator.comparingInt(PostMedia::getPosition))
+                .map(this::toPostMediaDto)
+                .toList();
+    }
+
+    protected PostMediaDto toPostMediaDto(PostMedia pm) {
+        return new PostMediaDto(
+                mediaService.toDto(pm.getMedia()),
+                pm.getPosition(),
+                pm.isCover()
+        );
+    }
+
+    protected MediaResourceDto extractCoverMedia(List<PostMedia> media) {
+        if (media == null) return null;
+        return media.stream()
+                .filter(PostMedia::isCover)
+                .findFirst()
+                .map(pm -> mediaService.toDto(pm.getMedia()))
+                .orElse(null);
+    }
+}

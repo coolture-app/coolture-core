@@ -12,34 +12,48 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 @Configuration
 public class S3Config {
+
+  /**
+   * Server-side operations (putObject, deleteObject, headObject).
+   * Uses internalEndpoint (s3garage:3900) — reachable inside Docker network.
+   */
   @Bean
-  public S3Client s3Client(S3Properties properties) {
+  public S3Client s3Client(S3Properties props) {
+    S3Configuration serviceConfig = S3Configuration.builder()
+            .pathStyleAccessEnabled(true)
+            .checksumValidationEnabled(false)
+            .build();
+
     return S3Client.builder()
-        .region(Region.of(properties.getRegion()))
-        .endpointOverride(URI.create(properties.getEndpoint()))
-        .credentialsProvider(
-            StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey())))
-        .serviceConfiguration(
-            S3Configuration.builder()
-                // required for GarageFS
-                // Amazon S3 uses {bucket}.s3.{region}.{address}/{key}
-                // but GarageFS uses {address}:{port}/{bucket}/{key}
-                .pathStyleAccessEnabled(true)
-                .chunkedEncodingEnabled(false)
-                .build())
-        .build();
+            .endpointOverride(URI.create(props.getInternalEndpoint()))
+            .region(Region.of(props.getRegion()))
+            .credentialsProvider(credentials(props))
+            .serviceConfiguration(serviceConfig)
+            .build();
   }
 
+  /**
+   * Generates presigned GET/PUT URLs handed to the browser.
+   * Uses publicEndpoint (localhost:3900) — reachable from outside Docker.
+   * Signature is computed against this host, so the browser hits the same
+   * host and the signature stays valid.
+   */
   @Bean
-  public S3Presigner s3Presigner(S3Properties properties) {
+  public S3Presigner s3Presigner(S3Properties props) {
+    S3Configuration serviceConfig = S3Configuration.builder()
+            .pathStyleAccessEnabled(true)
+            .build();
+
     return S3Presigner.builder()
-        .endpointOverride(URI.create(properties.getEndpoint()))
-        .region(Region.of(properties.getRegion()))
-        .credentialsProvider(
-            StaticCredentialsProvider.create(
-                AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey())))
-        .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
-        .build();
+            .endpointOverride(URI.create(props.getPublicEndpoint()))
+            .region(Region.of(props.getRegion()))
+            .credentialsProvider(credentials(props))
+            .serviceConfiguration(serviceConfig)
+            .build();
+  }
+
+  private StaticCredentialsProvider credentials(S3Properties props) {
+    return StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey()));
   }
 }

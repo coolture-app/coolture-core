@@ -49,6 +49,10 @@ services:
       GARAGE_ACCESS_KEY_SECRET: ${GARAGE_ACCESS_KEY_SECRET}
       GARAGE_BUCKET_NAME: ${GARAGE_BUCKET_NAME}
       GARAGE_KEY_NAME: ${GARAGE_KEY_NAME}
+      # for awscli used in init.sh
+      AWS_ACCESS_KEY_ID: ${GARAGE_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${GARAGE_ACCESS_KEY_SECRET}
+      AWS_DEFAULT_REGION: ${GARAGE_REGION:-garage}
     restart: on-failure:3
     entrypoint: ["/bin/sh", "/init.sh"]
 
@@ -96,7 +100,7 @@ services:
     command: start-dev --import-realm
 
   postgres:
-    image: postgres:18.3-alpine
+    image: postgis/postgis:18-3.6-alpine
     hostname: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
     env_file: .env
     environment:
@@ -106,6 +110,7 @@ services:
     volumes:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - ${POSTGRES_HOST_PORT:-5430}:${POSTGRES_INTERNAL_PORT:-5432}
     networks:
