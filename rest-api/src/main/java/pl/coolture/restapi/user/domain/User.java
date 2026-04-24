@@ -45,17 +45,11 @@ public class User {
   @Column(nullable = false, updatable = false)
   private Instant createdAt;
 
-  /**
-   * TODO: uncomment it when relations are added
-   * Subquery-based counters avoid denormalised columns on the users table
-   * while keeping User projections simple.
-   * These become correct automatically once UserRelation rows exist
-   */
-//  @Formula("(SELECT COUNT(*) FROM user_relations ur " +
-//          "WHERE ur.target_user_id = id AND ur.type = 'FOLLOW')")
-//  private int followersCount;
-//
-//  @Formula("(SELECT COUNT(*) FROM user_relations ur " +
-//          "WHERE ur.source_user_id = id AND ur.type = 'FOLLOW')")
-//  private int followingCount;
+  @Formula("(SELECT COUNT(*) FROM user_relations ur " +
+          "WHERE ur.target_user_id = id AND ur.type = 'FOLLOW')")
+  private int followersCount;
+
+  @Formula("(SELECT COUNT(*) FROM user_relations ur " +
+          "WHERE ur.source_user_id = id AND ur.type = 'FOLLOW')")
+  private int followingCount;
 }

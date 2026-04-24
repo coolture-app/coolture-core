@@ -18,18 +18,12 @@ public interface UserMapper {
      * explicitly in UserService after mapping.
      * TODO: do not ignore avatar after media fully implemented
      */
-    @Mapping(target = "avatar",         ignore = true)
-    // TODO: unmap zeros when user relations will be added
-    @Mapping(target = "followersCount",  constant = "0")
-    @Mapping(target = "followingCount",  constant = "0")
-    @Mapping(target = "isFollowing",    constant = "false")
-    @Mapping(target = "isBlocked",      constant = "false")
+    @Mapping(target = "avatar", ignore = true)
+    @Mapping(target = "isFollowing", constant = "false")
+    @Mapping(target = "isBlocked", constant = "false")
     UserProfileDto toProfileDto(User user);
 
     @Mapping(target = "avatar", ignore = true)
-    // TODO: unmap zeros when user relations will be added
-    @Mapping(target = "followersCount",  constant = "0")
-    @Mapping(target = "followingCount",  constant = "0")
     UserSummaryDto toSummaryDto(User user);
 
     /**
@@ -37,8 +31,7 @@ public interface UserMapper {
      */
     @Mapping(target = "id",             ignore = true)
     @Mapping(target = "createdAt",      ignore = true)
-    // TODO: uncomment when user relations will be added
-    //    @Mapping(target = "followersCount", ignore = true)
-    //    @Mapping(target = "followingCount", ignore = true)
+    @Mapping(target = "followersCount", ignore = true)
+    @Mapping(target = "followingCount", ignore = true)
     void updateEntity(UserProfileUpdateRequest request, @MappingTarget User user);
 }

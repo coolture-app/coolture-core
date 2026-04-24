@@ -82,11 +82,13 @@ class UserControllerTest {
     @Test
     void getById_returns200_whenUserExists() throws Exception {
         UUID id = UUID.randomUUID();
-        var profile = AuthControllerTest.profile(id, FAKE_USERNAME, FAKE_FIRST_NAME, FAKE_LAST_NAME);
+        UUID caller  = UUID.randomUUID();
+        var  profile = AuthControllerTest.profile(id, FAKE_USERNAME, FAKE_FIRST_NAME, FAKE_LAST_NAME);
 
-        when(userService.getById(id)).thenReturn(profile);
+        when(userService.getByIdForCaller(id, caller)).thenReturn(profile);
 
-        mockMvc.perform(get(USERS + "/{id}", id).with(jwt()))
+        mockMvc.perform(get(USERS + "/{id}", id)
+                        .with(jwt().jwt(j -> j.subject(caller.toString()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.username").value(FAKE_USERNAME));
@@ -95,30 +97,37 @@ class UserControllerTest {
     @Test
     void getById_returns404_whenUserMissing() throws Exception {
         UUID id = UUID.randomUUID();
-        when(userService.getById(id)).thenThrow(new ResourceNotFoundException("User", id));
+        UUID caller = UUID.randomUUID();
+        when(userService.getByIdForCaller(id, caller))
+                .thenThrow(new ResourceNotFoundException("User", id));
 
-        mockMvc.perform(get(USERS + "/{id}", id).with(jwt()))
+        mockMvc.perform(get(USERS + "/{id}", id)
+                        .with(jwt().jwt(j -> j.subject(caller.toString()))))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void getByUsername_returns200_whenFound() throws Exception {
-        UUID id      = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        UUID caller = UUID.randomUUID();
         var  profile = AuthControllerTest.profile(id, FAKE_USERNAME, FAKE_FIRST_NAME, FAKE_LAST_NAME);
 
-        when(userService.getByUsername(FAKE_USERNAME)).thenReturn(profile);
+        when(userService.getByUsernameForCaller(FAKE_USERNAME, caller)).thenReturn(profile);
 
-        mockMvc.perform(get(USERS + "/by-username/" + FAKE_USERNAME).with(jwt()))
+        mockMvc.perform(get(USERS + "/by-username/{username}", FAKE_USERNAME)
+                        .with(jwt().jwt(j -> j.subject(caller.toString()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value(FAKE_USERNAME));
     }
 
     @Test
     void getByUsername_returns404_whenNotFound() throws Exception {
-        when(userService.getByUsername(FAKE_USERNAME))
+        UUID caller = UUID.randomUUID();
+        when(userService.getByUsernameForCaller(FAKE_USERNAME, caller))
                 .thenThrow(new ResourceNotFoundException("User", FAKE_USERNAME));
 
-        mockMvc.perform(get(USERS + "/by-username/" + FAKE_USERNAME).with(jwt()))
+        mockMvc.perform(get(USERS + "/by-username/{username}", FAKE_USERNAME)
+                        .with(jwt().jwt(j -> j.subject(caller.toString()))))
                 .andExpect(status().isNotFound());
     }
 

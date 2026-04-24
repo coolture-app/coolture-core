@@ -31,8 +31,11 @@ public class UserController {
   private final UserService userService;
 
   @GetMapping("/by-username/{username}")
-  public ResponseEntity<UserProfileDto> getByUsername(@PathVariable String username) {
-    return ResponseEntity.ok(userService.getByUsername(username));
+  public ResponseEntity<UserProfileDto> getByUsername(
+          @PathVariable String username,
+          @AuthenticationPrincipal Jwt jwt) {
+    UUID callerId = UUID.fromString(jwt.getSubject());
+    return ResponseEntity.ok(userService.getByUsernameForCaller(username, callerId));
   }
 
   /** GET /users?q=&cursor=&limit= */
@@ -46,8 +49,11 @@ public class UserController {
   }
 
   @GetMapping("/{userId}")
-  public ResponseEntity<UserProfileDto> getById(@PathVariable UUID userId) {
-    return ResponseEntity.ok(userService.getById(userId));
+  public ResponseEntity<UserProfileDto> getById(
+          @PathVariable UUID userId,
+          @AuthenticationPrincipal Jwt jwt) {
+    UUID callerId = UUID.fromString(jwt.getSubject());
+    return ResponseEntity.ok(userService.getByIdForCaller(userId, callerId));
   }
 
 
