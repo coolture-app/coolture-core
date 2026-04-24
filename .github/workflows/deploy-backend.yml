@@ -17,7 +17,7 @@ jobs:
       group: deploy-backend
       cancel-in-progress: false
     env:
-      DEPLOY_DIR: /home/admin/coolture/dev/backend
+      DEPLOY_DIR: /opt/coolture/dev/backend
       DEPLOY_HOST_NAME: ${{ vars.DEPLOY_HOST_NAME }}
 
     steps:
