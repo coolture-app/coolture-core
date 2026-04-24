@@ -120,6 +120,14 @@ public class GlobalExceptionHandler {
                 errors);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ProblemDetails> handleIllegalArgument(
+            IllegalArgumentException ex, HttpServletRequest request) {
+
+        log.warn("Illegal argument on {}: {}", request.getRequestURI(), ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request, null);
+    }
+
     /**
      * Handles path/query parameter type mismatches (e.g. a non-UUID string passed
      * where a UUID is expected).

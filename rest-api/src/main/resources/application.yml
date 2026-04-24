@@ -37,7 +37,8 @@ spring:
 
 storage:
   s3:
-    endpoint: http://${GARAGE_API_CONNECT_HOSTNAME:localhost}:${GARAGE_API_CONNECT_PORT:3900}
+    internal-endpoint: http://${GARAGE_API_CONNECT_HOSTNAME:localhost}:${GARAGE_API_CONNECT_PORT:3900}
+    public-endpoint: http://${HOST_NAME:localhost}:${GARAGE_API_HOST_PORT:3900}
     region: ${GARAGE_REGION:garage}
     access-key: ${GARAGE_ACCESS_KEY_ID}
     secret-key: ${GARAGE_ACCESS_KEY_SECRET}
