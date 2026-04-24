@@ -1,5 +1,6 @@
 package pl.coolture.restapi.user;
 
+// TODO: delete when replaced in other services
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +18,7 @@ public class UserMinDTO {
     return UserMinDTO.builder()
         .id(user.getId())
         .username(user.getUsername())
-        .avatarUrl(user.getAvatarUrl())
+//        .avatarUrl(user.getAvatarUrl())
         .build();
   }
 }

@@ -1,5 +1,5 @@
 package pl.coolture.restapi.user;
-
+// TODO: delete when replaced in other services
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -45,11 +45,11 @@ public class CreateUpdateUserDTO {
     return CreateUpdateUserDTO.builder()
         .id(user.getId())
         .username(user.getUsername())
-        .email(user.getEmail())
+//        .email(user.getEmail())
         .firstName(user.getFirstName())
         .lastName(user.getLastName())
-        .bioDescription(user.getBioDescription())
-        .avatarUrl(user.getAvatarUrl())
+//        .bioDescription(user.getBioDescription())
+//        .avatarUrl(user.getAvatarUrl())
         .build();
   }
 
@@ -57,11 +57,11 @@ public class CreateUpdateUserDTO {
     return User.builder()
         .id(this.id)
         .username(this.username)
-        .email(this.email)
+//        .email(this.email)
         .firstName(this.firstName)
         .lastName(this.lastName)
-        .bioDescription(this.bioDescription)
-        .avatarUrl(this.avatarUrl)
+//        .bioDescription(this.bioDescription)
+//        .avatarUrl(this.avatarUrl)
         .build();
   }
 }

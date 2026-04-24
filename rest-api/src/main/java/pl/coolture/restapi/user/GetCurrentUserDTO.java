@@ -1,5 +1,5 @@
 package pl.coolture.restapi.user;
-
+// TODO: delete when replaced in other services
 import java.util.List;
 import lombok.Builder;
 import lombok.Value;

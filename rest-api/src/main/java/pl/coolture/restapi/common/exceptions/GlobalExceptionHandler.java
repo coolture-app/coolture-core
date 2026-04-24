@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import jakarta.validation.ConstraintViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
@@ -82,6 +84,38 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Validation Failed",
                 "One or more request fields are invalid",
+                request,
+                errors);
+    }
+
+    /**
+     * Handles constraint violations on method parameters annotated with @Min, @Max, @Size, etc.
+     * These are triggered by @Validated on the controller class, as opposed to @Valid on a
+     * request body which produces MethodArgumentNotValidException instead.
+     */
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetails> handleConstraintViolation(
+            jakarta.validation.ConstraintViolationException ex, HttpServletRequest request) {
+
+        Map<String, List<String>> errors = ex.getConstraintViolations()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        v -> {
+                            // propertyPath is e.g. "search.limit", keep only the last segment
+                            String path = v.getPropertyPath().toString();
+                            int dot = path.lastIndexOf('.');
+                            return dot >= 0 ? path.substring(dot + 1) : path;
+                        },
+                        Collectors.mapping(
+                                ConstraintViolation::getMessage,
+                                Collectors.toList())));
+
+        log.warn("Constraint violation on {}: {}", request.getRequestURI(), errors);
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Validation Failed",
+                "One or more request parameters are invalid",
                 request,
                 errors);
     }
