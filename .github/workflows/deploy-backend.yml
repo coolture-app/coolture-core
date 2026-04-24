@@ -22,22 +22,24 @@ jobs:
 
     steps:
       - name: Update deploy repository
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: |
-          if [ ! -d "$DEPLOY_DIR/.git" ]; then
-            echo "Missing git repository in $DEPLOY_DIR"
+          if [ ! -d ".git" ]; then
+            echo "Missing git repository in $PWD"
             exit 1
           fi
 
-          git -C "$DEPLOY_DIR" fetch --all --prune
-          git -C "$DEPLOY_DIR" checkout "$GITHUB_REF_NAME"
-          git -C "$DEPLOY_DIR" pull --ff-only origin "$GITHUB_REF_NAME"
+          git fetch --all --prune
+          git checkout "$GITHUB_REF_NAME"
+          git pull --ff-only origin "$GITHUB_REF_NAME"
 
       - name: Generate environment file first
+        working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           HOST_NAME_VALUE="${DEPLOY_HOST_NAME:-localhost}"
           make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE"
-        working-directory: /home/admin/coolture/dev/backend
 
       - name: Deploy backend stack
-        run: docker-compose -f docker-compose.base.yml -f docker-compose.app.yml up --build -d
-        working-directory: /home/admin/coolture/dev/backend
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          docker-compose -f docker-compose.base.yml -f docker-compose.app.yml up --build -d
