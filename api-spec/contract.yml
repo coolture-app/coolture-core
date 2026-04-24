@@ -811,7 +811,7 @@ paths:
         '409':
           description: Conflict - Media is currently in use and cannot be deleted.
 
-  /event-categories:
+  /dicts/event-categories:
     get:
       tags: [Dictionaries]
       summary: List all available event categories
@@ -826,7 +826,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Category'
 
-  /country-codes:
+  /dicts/country-codes:
     get:
       tags: [Dictionaries]
       summary: List supported country codes
