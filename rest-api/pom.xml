@@ -123,6 +123,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- PostGIS Hibernate integration -->
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-spatial</artifactId>
+        </dependency>
+
         <!-- Mapper (Entity <-> DTO) -->
         <dependency>
             <groupId>org.mapstruct</groupId>
