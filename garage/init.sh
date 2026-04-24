@@ -27,3 +27,21 @@ $G bucket allow "$GARAGE_BUCKET_NAME" \
   --read --write --owner || true
 
 echo "Garage initialized."
+
+# Configure CORS so browsers can PUT/GET directly
+apk add --no-cache aws-cli --quiet
+
+aws s3api put-bucket-cors \
+  --endpoint-url "http://127.0.0.1:3900" \
+  --bucket "$GARAGE_BUCKET_NAME" \
+  --cors-configuration '{
+    "CORSRules": [{
+      "AllowedOrigins": ["*"],
+      "AllowedMethods": ["GET", "PUT", "HEAD", "DELETE"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag", "x-amz-checksum-crc32"],
+      "MaxAgeSeconds": 3600
+    }]
+  }'
+
+echo "CORS configured."

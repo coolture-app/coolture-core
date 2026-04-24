@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Presigned PUT test</title>
+    <style>
+        input, button { margin: 0.25rem 0; display: block; }
+        textarea { width: 100%; height: 80px; }
+        .ok  { color: green; } .err { color: red; }
+    </style>
+</head>
+<body>
+<h2>Presigned PUT tester</h2>
+
+<label>Presigned PUT URL</label>
+<textarea id="url" placeholder="Paste the uploadUrl from POST /media/uploads/init"></textarea>
+
+<label>File</label>
+<input type="file" id="file" accept="image/*,video/*" onchange="showFileInfo()">
+<div id="fileInfo"></div>
+
+<button onclick="upload()">PUT to S3</button>
+
+<pre id="out">—</pre>
+
+<script>
+    function showFileInfo() {
+        const file = document.getElementById('file').files[0];
+        const info = document.getElementById('fileInfo');
+        if (!file) { info.textContent = ''; return; }
+        info.textContent = `${file.name} — ${file.type} — ${file.size.toLocaleString()} bytes`;
+    }
+
+    async function upload() {
+        const url  = document.getElementById('url').value.trim();
+        const file = document.getElementById('file').files[0];
+        const out  = document.getElementById('out');
+
+        if (!url || !file) { out.textContent = 'Paste a URL and pick a file first.'; return; }
+
+        out.textContent = `Uploading ${file.name} (${file.size.toLocaleString()} bytes) …`;
+
+        try {
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': file.type },
+                body: file,
+            });
+
+            if (res.ok) {
+                const etag = res.headers.get('ETag') ?? '(none)';
+                out.innerHTML = `<span class="ok">✓ ${res.status} ${res.statusText}</span>\nETag: ${etag}`;
+            } else {
+                const text = await res.text();
+                out.innerHTML = `<span class="err">✗ ${res.status} ${res.statusText}</span>\n${text}`;
+            }
+        } catch (e) {
+            out.innerHTML = `<span class="err">Network error</span>\n${e}`;
+        }
+    }
+</script>
+</body>
+</html>
