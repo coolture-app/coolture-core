@@ -41,7 +41,7 @@ jobs:
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
           HOST_NAME_VALUE="${DEPLOY_HOST_NAME:-localhost}"
-          make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE"
+          make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE" H_GATEWAY_PORT=8090
 
       - name: Deploy backend stack
         working-directory: ${{ env.DEPLOY_DIR }}
