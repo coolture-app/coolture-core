@@ -100,6 +100,11 @@ public class MediaService {
     public MediaResourceDto getById(UUID mediaId) {
         Media media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Media", mediaId));
+
+        if (STATUS_DELETED.equals(media.getStatus())) {
+            throw new ResourceNotFoundException("Media", mediaId);
+        }
+
         return toDto(media);
     }
 
