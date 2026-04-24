@@ -21,6 +21,7 @@ import pl.coolture.restapi.media.domain.Media;
 import pl.coolture.restapi.media.domain.MediaRepository;
 import pl.coolture.restapi.common.config.storage.PresignService;
 import pl.coolture.restapi.common.config.storage.S3Properties;
+import pl.coolture.restapi.media.domain.MediaMimeType;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -44,6 +45,8 @@ public class MediaService {
 
     @Transactional
     public MediaUploadInitResponse initUpload(UUID ownerId, MediaUploadInitRequest request) {
+        MediaMimeType.validate(request.mimeType());
+
         String ext = extractExtension(request.fileName());
         String objectKey = "%s/%s/%s.%s".formatted(request.purpose(), ownerId, UUID.randomUUID(), ext);
 
@@ -157,6 +160,7 @@ public class MediaService {
                 Optional.ofNullable(file.getOriginalFilename()).orElse("file.bin"));
         String objectKey = "%s/%s/%s.%s".formatted(purpose, ownerId, UUID.randomUUID(), ext);
         String mimeType = Optional.ofNullable(file.getContentType()).orElse("application/octet-stream");
+        MediaMimeType.validate(mimeType);
 
         // Upload bytes directly to S3 using the internal S3Client (not presigned)
         s3Client.putObject(
