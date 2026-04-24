@@ -34,7 +34,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
    * @param limit           maximum number of rows to return (pass limit + 1 for hasMore probe)
    */
   @Query(value = """
-            SELECT * FROM users u
+            SELECT u.*,
+                   (SELECT COUNT(*) FROM user_relations ur
+                    WHERE ur.target_user_id = u.id AND ur.type = 'FOLLOW') AS "followersCount",
+                   (SELECT COUNT(*) FROM user_relations ur
+                    WHERE ur.source_user_id = u.id AND ur.type = 'FOLLOW') AS "followingCount"
+            FROM users u
             WHERE (
                 CAST(:q AS varchar) IS NULL
                 OR LOWER(u.username)   LIKE LOWER('%' || CAST(:q AS varchar) || '%')
