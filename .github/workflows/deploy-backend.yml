@@ -21,6 +21,9 @@ jobs:
       DEPLOY_HOST_NAME: ${{ vars.DEPLOY_HOST_NAME }}
 
     steps:
+      - name: Fix git safe directory
+        run: git config --global --add safe.directory "$DEPLOY_DIR"
+
       - name: Update deploy repository
         working-directory: ${{ env.DEPLOY_DIR }}
         run: |
