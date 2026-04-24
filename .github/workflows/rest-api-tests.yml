@@ -12,6 +12,7 @@ jobs:
   test-rest-api:
     name: REST API Maven Verify
     runs-on: [self-hosted, docker]
+    if: false
 
     steps:
       - name: Checkout

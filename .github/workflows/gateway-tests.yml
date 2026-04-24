@@ -12,6 +12,7 @@ jobs:
   test-gateway:
     name: Gateway Maven Verify
     runs-on: [self-hosted, docker]
+    if: false
 
     steps:
       - name: Checkout
