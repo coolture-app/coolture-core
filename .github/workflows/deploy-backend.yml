@@ -43,6 +43,9 @@ jobs:
           HOST_NAME_VALUE="${DEPLOY_HOST_NAME:-localhost}"
           make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE" H_GATEWAY_PORT=8090
 
+      - name: Ensure shared Docker network exists
+        run: docker network inspect coolture-core_devnet || docker network create coolture-core_devnet
+
       - name: Tear down existing stack
         working-directory: ${{ env.DEPLOY_DIR }}
         run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml down
