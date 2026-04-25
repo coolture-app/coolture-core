@@ -32,10 +32,10 @@ jobs:
             echo "Missing git repository in $PWD"
             exit 1
           fi
-          echo "test"
           git fetch --all --prune
           git checkout "${{ env.BRANCH }}"
-          git pull --ff-only origin "${{ env.BRANCH }}"
+          git reset --hard "origin/${{ env.BRANCH }}"
+          git clean -fd
 
       - name: Generate environment file first
         working-directory: ${{ env.DEPLOY_DIR }}
