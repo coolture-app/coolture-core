@@ -32,7 +32,7 @@ jobs:
             echo "Missing git repository in $PWD"
             exit 1
           fi
-
+          echo "test"
           git fetch --all --prune
           git checkout "${{ env.BRANCH }}"
           git pull --ff-only origin "${{ env.BRANCH }}"
