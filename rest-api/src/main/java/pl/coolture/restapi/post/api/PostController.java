@@ -43,30 +43,33 @@ public class PostController {
         var filters = new PostFeedFilters(
                 q, categoryId, tags, authorId, status, visibility, type,
                 startsFrom, startsTo, latitude, longitude, radiusKm);
-        return postService.getFeed(filters, cursor, limit);
+
+        UUID callerId = SecurityUtils.getCurrentUserIdOrNull();
+        return postService.getFeed(callerId, filters, cursor, limit);
     }
 
     @GetMapping("/{postId}")
     public PostDetailDto getById(@PathVariable UUID postId) {
-        return postService.getById(postId);
+        UUID callerId = SecurityUtils.getCurrentUserIdOrNull();
+        return postService.getById(postId, callerId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PostDetailDto create(@Valid @RequestBody PostCreateRequest request) {
-        return postService.create(UUID.fromString(SecurityUtils.getCurrentUserId()), request);
+        return postService.create(SecurityUtils.getCurrentUserId(), request);
     }
 
     @PatchMapping("/{postId}")
     public PostDetailDto update(
             @PathVariable UUID postId,
             @Valid @RequestBody PostUpdateRequest request) {
-        return postService.update(postId, UUID.fromString(SecurityUtils.getCurrentUserId()), request);
+        return postService.update(postId, SecurityUtils.getCurrentUserId(), request);
     }
 
     @DeleteMapping("/{postId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID postId) {
-        postService.softDelete(postId, UUID.fromString(SecurityUtils.getCurrentUserId()));
+        postService.softDelete(postId, SecurityUtils.getCurrentUserId());
     }
 }

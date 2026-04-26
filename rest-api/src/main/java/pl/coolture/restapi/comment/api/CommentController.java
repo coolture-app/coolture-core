@@ -40,7 +40,7 @@ public class CommentController {
     public ResponseEntity<CommentSummaryDto> create(
             @PathVariable UUID postId,
             @Valid @RequestBody CommentCreateRequest request) {
-        UUID callerId = UUID.fromString(SecurityUtils.getCurrentUserId());
+        UUID callerId = SecurityUtils.getCurrentUserId();
         CommentSummaryDto created = commentService.create(postId, callerId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -49,14 +49,14 @@ public class CommentController {
     public CommentSummaryDto update(
             @PathVariable UUID commentId,
             @Valid @RequestBody CommentUpdateRequest request) {
-        UUID callerId = UUID.fromString(SecurityUtils.getCurrentUserId());
+        UUID callerId = SecurityUtils.getCurrentUserId();
         return commentService.update(commentId, callerId, request);
     }
 
     @DeleteMapping("/comments/{commentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID commentId) {
-        UUID callerId = UUID.fromString(SecurityUtils.getCurrentUserId());
+        UUID callerId = SecurityUtils.getCurrentUserId();
         commentService.softDelete(commentId, callerId);
     }
 }

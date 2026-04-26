@@ -21,11 +21,15 @@ import pl.coolture.restapi.dictionary.domain.EventCategory;
 import pl.coolture.restapi.dictionary.domain.EventCategoryRepository;
 import pl.coolture.restapi.media.domain.Media;
 import pl.coolture.restapi.media.domain.MediaRepository;
+import pl.coolture.restapi.participation.application.ParticipationService;
+import pl.coolture.restapi.participation.domain.ParticipationType;
 import pl.coolture.restapi.post.api.PostMapper;
 import pl.coolture.restapi.post.api.dto.*;
 import pl.coolture.restapi.post.domain.Post;
 import pl.coolture.restapi.post.domain.PostMedia;
 import pl.coolture.restapi.post.domain.PostRepository;
+import pl.coolture.restapi.reaction.application.ReactionService;
+import pl.coolture.restapi.reaction.domain.ReactionType;
 import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.user.domain.UserRepository;
 
@@ -48,14 +52,18 @@ public class PostService {
     private final PostMapper              postMapper;
     private final CursorCodec             cursorCodec;
     private final CommentService          commentService;
+    private final ReactionService reactionService;
+    private final ParticipationService participationService;
 
     /**
      * Paginated feed
+     * callerId may be null for unauthenticated callers
+     * then myReaction / myParticipation will remain null in that case.
      *
      * TODO visibility enforcement: currently the `visibility` param is a plain filter.
      *  Proper rules (PRIVATE = author only, FRIENDS = followers only)
      */
-    public CursorPage<PostCardDto> getFeed(PostFeedFilters f, String cursor, int limit) {
+    public CursorPage<PostCardDto> getFeed(UUID callerId, PostFeedFilters f, String cursor, int limit) {
         var payload = cursorCodec.decode(cursor);
 
         String[] tagsArr = (f.tags() == null || f.tags().isEmpty())
@@ -74,11 +82,22 @@ public class PostService {
                 limit + 1);
 
         List<PostCardDto> dtos = rows.stream().map(postMapper::toCard).toList();
-        return CursorPage.of(dtos, limit, PostCardDto::id, PostCardDto::createdAt, cursorCodec);
+        enrich(dtos, callerId);
+        return CursorPage.of(dtos, limit, PostCardDto::getId, PostCardDto::getCreatedAt, cursorCodec);
     }
 
-    public PostDetailDto getById(UUID postId) {
-        return postMapper.toDetail(findActiveOrThrow(postId));
+    /**
+     * callerId may be null - myReaction / myParticipation will remain null in that case.
+     */
+    public PostDetailDto getById(UUID postId, UUID callerId) {
+        PostDetailDto dto = postMapper.toDetail(findActiveOrThrow(postId));
+        if (callerId != null) {
+            Map<UUID, ReactionType> reactions = reactionService.findReactionTypesForPosts(callerId, List.of(postId));
+            Map<UUID, ParticipationType> participations = participationService.findParticipationTypesForPosts(callerId, List.of(postId));
+            dto.setMyReaction(reactions.get(postId));
+            dto.setMyParticipation(participations.get(postId));
+        }
+        return dto;
     }
 
     @Transactional
@@ -178,6 +197,24 @@ public class PostService {
         post.setStatus(STATUS_DELETED);
         post.setDeletedAt(Instant.now());
     }
+
+    /**
+     * Batch fetch of caller's reactions and participations for a page of posts,
+     * then sets them via the mutable fields on each DTO.
+     */
+    private void enrich(List<PostCardDto> dtos, UUID callerId) {
+        if (callerId == null || dtos.isEmpty()) return;
+
+        List<UUID> postIds = dtos.stream().map(PostCardDto::getId).toList();
+        Map<UUID, ReactionType> reactions = reactionService.findReactionTypesForPosts(callerId, postIds);
+        Map<UUID, ParticipationType> participations = participationService.findParticipationTypesForPosts(callerId, postIds);
+
+        dtos.forEach(dto -> {
+            dto.setMyReaction(reactions.get(dto.getId()));
+            dto.setMyParticipation(participations.get(dto.getId()));
+        });
+    }
+
 
     private Post findActiveOrThrow(UUID postId) {
         Post post = postRepository.findById(postId)
