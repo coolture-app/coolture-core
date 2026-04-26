@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pl.coolture.restapi.comment.application.CommentService;
 import pl.coolture.restapi.common.exceptions.ForbiddenException;
 import pl.coolture.restapi.common.exceptions.ResourceNotFoundException;
 import pl.coolture.restapi.common.pagination.CursorCodec;
@@ -46,6 +47,7 @@ public class PostService {
     private final MediaRepository         mediaRepository;
     private final PostMapper              postMapper;
     private final CursorCodec             cursorCodec;
+    private final CommentService          commentService;
 
     /**
      * Paginated feed
@@ -170,6 +172,9 @@ public class PostService {
     public void softDelete(UUID postId, UUID callerId) {
         Post post = findActiveOrThrow(postId);
         requireAuthor(post, callerId);
+
+        commentService.deleteAllForPost(postId);
+
         post.setStatus(STATUS_DELETED);
         post.setDeletedAt(Instant.now());
     }
