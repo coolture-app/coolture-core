@@ -129,4 +129,5 @@ volumes:
 
 networks:
   devnet:
-    driver: bridge
+    external: true
+    name: coolture-core_devnet
