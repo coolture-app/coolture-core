@@ -1,0 +1,30 @@
+---
+name: REST API Tests
+
+on:
+  pull_request:
+    paths:
+      - "rest-api/**"
+      - ".github/workflows/rest-api-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test-rest-api:
+    name: REST API Maven Verify
+    runs-on: [self-hosted, docker]
+    if: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Run rest-api tests and checks
+        run: ./mvnw verify
+        working-directory: rest-api
