@@ -1,6 +1,8 @@
 package pl.coolture.restapi.common.config.security;
 
 import java.util.Objects;
+import java.util.UUID;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -10,7 +12,7 @@ import pl.coolture.restapi.common.exceptions.UnauthenticatedUserException;
 
 @Component
 public class SecurityUtils {
-  public static String getCurrentUserId() throws UnauthenticatedUserException, JwtException {
+  public static UUID getCurrentUserId() throws UnauthenticatedUserException, JwtException {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
     if (auth == null || !auth.isAuthenticated()) {
@@ -23,7 +25,19 @@ public class SecurityUtils {
       throw new JwtException("JWT token is null");
     }
 
-    return jwt.getSubject();
+    return UUID.fromString(jwt.getSubject());
+  }
+
+  public static UUID getCurrentUserIdOrNull() {
+    var auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (auth == null || !auth.isAuthenticated()) return null;
+
+    if (auth.getPrincipal() instanceof Jwt jwt) {
+      return UUID.fromString(jwt.getSubject());
+    }
+
+    return null;
   }
 
   public static boolean isCurrentUserAdmin() {

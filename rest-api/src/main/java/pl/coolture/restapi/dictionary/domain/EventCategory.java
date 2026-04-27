@@ -27,4 +27,13 @@ public class EventCategory {
 
     @Column(nullable = false, unique = true, length = 32)
     private String name;
+
+    public EventCategory(String name) {
+        this.name = name;
+    }
+
+    /** Used by admin update - keeps the same UUID. */
+    public void rename(String newName) {
+        this.name = newName;
+    }
 }
