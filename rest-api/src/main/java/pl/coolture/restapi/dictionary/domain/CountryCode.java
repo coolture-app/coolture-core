@@ -17,11 +17,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CountryCode {
 
-    /**
-     * ISO 3166-1 alpha-3 code, e.g. "POL", "DEU", "USA".
-     * Length is fixed at 3 characters per the standard.
-     */
     @Id
     @Column(length = 3, nullable = false)
     private String code;
+
+    public CountryCode(String code) {
+        this.code = code;
+    }
 }
