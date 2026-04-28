@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pl.coolture.restapi.common.config.security.SecurityUtils;
@@ -21,8 +22,9 @@ public class PostController {
     private final PostService postService;
 
     // ModelAttribute annotation treats every field as optional
+    // ParameterObject annotation for Swagger UI to treat it as query params
     @GetMapping
-    public CursorPage<PostCardDto> getFeed(@ModelAttribute @Valid PostFeedRequest req) {
+    public CursorPage<PostCardDto> getFeed(@ParameterObject @ModelAttribute @Valid PostFeedRequest req) {
         UUID callerId = SecurityUtils.getCurrentUserIdOrNull();
         return postService.getFeed(callerId, req.toFilters(), req.getCursor(), req.getLimit());
     }

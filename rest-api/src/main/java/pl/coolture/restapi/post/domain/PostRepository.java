@@ -9,61 +9,76 @@ import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
-    /**
-     * Feed query with all optional filters and cursor pagination on (created_at, id).
-     *
-     * Tags filter uses PostgreSQL's && (array overlap) operator.
-     *
-     * Geo filter applies only when all three of lat, lng, radiusMeters are present.
-     * ST_DWithin on geography type measures distance in meters along the earth surface.
-     * Posts without a location are excluded from the geo-filtered result.
-     */
-    @Query(value = """
-            SELECT p.* FROM posts p
-            LEFT JOIN event_locations el ON el.id = p.event_location_id
-            WHERE p.deleted_at IS NULL
-              AND (CAST(:q AS varchar) IS NULL
-                   OR LOWER(p.title)       LIKE LOWER('%' || CAST(:q AS varchar) || '%')
-                   OR LOWER(p.description) LIKE LOWER('%' || CAST(:q AS varchar) || '%'))
-              AND (CAST(:categoryId AS uuid)   IS NULL OR p.event_category_id = CAST(:categoryId AS uuid))
-              AND (CAST(:tags AS varchar[])    IS NULL OR p.tags && CAST(:tags AS varchar[]))
-              AND (CAST(:authorId AS uuid)     IS NULL OR p.author_id         = CAST(:authorId AS uuid))
-              AND (CAST(:status AS varchar)    IS NULL OR p.status            = CAST(:status AS varchar))
-              AND (CAST(:visibility AS varchar)IS NULL OR p.visibility        = CAST(:visibility AS varchar))
-              AND (CAST(:type AS varchar)      IS NULL OR p.type              = CAST(:type AS varchar))
-              AND (CAST(:startsFrom AS timestamptz) IS NULL OR p.starts_at >= CAST(:startsFrom AS timestamptz))
-              AND (CAST(:startsTo   AS timestamptz) IS NULL OR p.starts_at <= CAST(:startsTo   AS timestamptz))
-              AND (CAST(:lat AS double precision) IS NULL
-                   OR CAST(:lng AS double precision) IS NULL
-                   OR CAST(:radiusMeters AS double precision) IS NULL
-                   OR (el.coordinates IS NOT NULL
-                       AND ST_DWithin(
-                             el.coordinates,
-                             ST_SetSRID(ST_MakePoint(
-                                 CAST(:lng AS double precision),
-                                 CAST(:lat AS double precision)), 4326)::geography,
-                             CAST(:radiusMeters AS double precision))))
-              AND (CAST(:cursorCreatedAt AS timestamptz) IS NULL
-                   OR p.created_at < CAST(:cursorCreatedAt AS timestamptz)
-                   OR (p.created_at = CAST(:cursorCreatedAt AS timestamptz)
-                       AND p.id < CAST(:cursorId AS uuid)))
-            ORDER BY p.created_at DESC, p.id DESC
-            LIMIT :limit
-            """, nativeQuery = true)
-    List<Post> findFeed(
-            @Param("q")                String q,
-            @Param("categoryId")       UUID categoryId,
-            @Param("tags")             String[] tags,
-            @Param("authorId")         UUID authorId,
-            @Param("status")           String status,
-            @Param("visibility")       String visibility,
-            @Param("type")             String type,
-            @Param("startsFrom")       Instant startsFrom,
-            @Param("startsTo")         Instant startsTo,
-            @Param("lat")              Double lat,
-            @Param("lng")              Double lng,
-            @Param("radiusMeters")     Double radiusMeters,
-            @Param("cursorCreatedAt")  Instant cursorCreatedAt,
-            @Param("cursorId")         UUID cursorId,
-            @Param("limit")            int limit);
+  /**
+   * Feed query with all optional filters and cursor pagination on (created_at, id).
+   *
+   * <p>Tags filter uses PostgreSQL's && (array overlap) operator.
+   *
+   * <p>Participation filter: When participationTypes is non-null, only posts for which the given
+   * callerId has a matching entry in post_participations are returned. The service guarantees
+   * callerId is non-null whenever participationTypes is set.
+   *
+   * <p>Geo filter applies only when all three of lat, lng, radiusMeters are present. ST_DWithin on
+   * geography type measures distance in meters along the earth surface. Posts without a location
+   * are excluded from the geo-filtered result.
+   */
+  @Query(
+      value =
+          """
+          SELECT p.* FROM posts p
+          LEFT JOIN event_locations el ON el.id = p.event_location_id
+          WHERE p.deleted_at IS NULL
+            AND (CAST(:q AS varchar) IS NULL
+                 OR LOWER(p.title)       LIKE LOWER('%' || CAST(:q AS varchar) || '%')
+                 OR LOWER(p.description) LIKE LOWER('%' || CAST(:q AS varchar) || '%'))
+            AND (CAST(:categoryId AS uuid)   IS NULL OR p.event_category_id = CAST(:categoryId AS uuid))
+            AND (CAST(:tags AS varchar[])    IS NULL OR p.tags && CAST(:tags AS varchar[]))
+            AND (CAST(:authorId AS uuid)     IS NULL OR p.author_id         = CAST(:authorId AS uuid))
+            AND (CAST(:status AS varchar)    IS NULL OR p.status            = CAST(:status AS varchar))
+            AND (CAST(:visibility AS varchar)IS NULL OR p.visibility        = CAST(:visibility AS varchar))
+            AND (CAST(:type AS varchar)      IS NULL OR p.type              = CAST(:type AS varchar))
+            AND (CAST(:startsFrom AS timestamptz) IS NULL OR p.starts_at >= CAST(:startsFrom AS timestamptz))
+            AND (CAST(:startsTo   AS timestamptz) IS NULL OR p.starts_at <= CAST(:startsTo   AS timestamptz))
+            AND (CAST(:lat AS double precision) IS NULL
+                 OR CAST(:lng AS double precision) IS NULL
+                 OR CAST(:radiusMeters AS double precision) IS NULL
+                 OR (el.coordinates IS NOT NULL
+                     AND ST_DWithin(
+                           el.coordinates,
+                           ST_SetSRID(ST_MakePoint(
+                               CAST(:lng AS double precision),
+                               CAST(:lat AS double precision)), 4326)::geography,
+                           CAST(:radiusMeters AS double precision))))
+            AND (CAST(:participationTypes AS varchar[]) IS NULL
+                 OR EXISTS (
+                     SELECT 1 FROM post_participations pp
+                     WHERE pp.post_id  = p.id
+                       AND pp.user_id  = CAST(:callerId AS uuid)
+                       AND pp.type     = ANY(CAST(:participationTypes AS varchar[]))))
+            AND (CAST(:cursorCreatedAt AS timestamptz) IS NULL
+                 OR p.created_at < CAST(:cursorCreatedAt AS timestamptz)
+                 OR (p.created_at = CAST(:cursorCreatedAt AS timestamptz)
+                     AND p.id < CAST(:cursorId AS uuid)))
+          ORDER BY p.created_at DESC, p.id DESC
+          LIMIT :limit
+          """,
+      nativeQuery = true)
+  List<Post> findFeed(
+      @Param("q") String q,
+      @Param("categoryId") UUID categoryId,
+      @Param("tags") String[] tags,
+      @Param("authorId") UUID authorId,
+      @Param("status") String status,
+      @Param("visibility") String visibility,
+      @Param("type") String type,
+      @Param("startsFrom") Instant startsFrom,
+      @Param("startsTo") Instant startsTo,
+      @Param("lat") Double lat,
+      @Param("lng") Double lng,
+      @Param("radiusMeters") Double radiusMeters,
+      @Param("participationTypes") String[] participationTypes,
+      @Param("callerId") UUID callerId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorId") UUID cursorId,
+      @Param("limit") int limit);
 }
