@@ -75,18 +75,13 @@ public class PostService {
 
     var payload = cursorCodec.decode(cursor);
 
-    String[] tagsArr =
-        (f.tags() == null || f.tags().isEmpty()) ? null : f.tags().toArray(String[]::new);
-
     Double radiusMeters = (f.radiusKm() == null) ? null : f.radiusKm() * 1000.0;
-
-    String[] participationTypesArr = toStringArray(f.participationTypes());
 
     List<Post> rows =
         postRepository.findFeed(
             blankToNull(f.q()),
             f.categoryId(),
-            tagsArr,
+            toNullableArray(f.tags()),
             f.authorId(),
             f.status(),
             f.visibility(),
@@ -96,7 +91,7 @@ public class PostService {
             f.latitude(),
             f.longitude(),
             radiusMeters,
-            participationTypesArr,
+            toNullableArray(f.participationTypes()),
             callerId,
             payload.map(CursorPayload::createdAt).orElse(null),
             payload.map(CursorPayload::id).orElse(null),
@@ -142,7 +137,7 @@ public class PostService {
             .eventUrl(req.eventUrl())
             .startsAt(req.startsAt())
             .endsAt(req.endsAt())
-            .tags(tagsToArray(req.tags()))
+            .tags(toNullableArray(req.tags()))
             .type(req.type())
             .status(STATUS_ACTIVE)
             .visibility(req.visibility() != null ? req.visibility() : VISIBILITY_PUBLIC)
@@ -177,7 +172,7 @@ public class PostService {
     if (req.eventUrl() != null) post.setEventUrl(req.eventUrl());
     if (req.startsAt() != null) post.setStartsAt(req.startsAt());
     if (req.endsAt() != null) post.setEndsAt(req.endsAt());
-    if (req.tags() != null) post.setTags(tagsToArray(req.tags()));
+    if (req.tags() != null) post.setTags(toNullableArray(req.tags()));
     if (req.type() != null) post.setType(req.type());
     if (req.visibility() != null) post.setVisibility(req.visibility());
 
@@ -350,8 +345,8 @@ public class PostService {
     }
   }
 
-  private static String[] tagsToArray(List<String> tags) {
-    return tags == null ? null : tags.toArray(String[]::new);
+  private static String[] toNullableArray(List<String> list) {
+    return (list == null || list.isEmpty()) ? null : list.toArray(String[]::new);
   }
 
   private static String blankToNull(String s) {
