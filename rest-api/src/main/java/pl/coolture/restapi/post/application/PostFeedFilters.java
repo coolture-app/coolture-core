@@ -22,5 +22,6 @@ public record PostFeedFilters(
         Double          latitude,
         Double          longitude,
         Double          radiusKm,
-        List<String>    participationTypes
+        List<String>    participationTypes,
+        String          reactionType
 ) {}

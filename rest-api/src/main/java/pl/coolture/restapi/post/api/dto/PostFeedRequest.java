@@ -67,6 +67,13 @@ public class PostFeedRequest {
      */
     private List<@Pattern(regexp = "interested|takes_part") String> participationTypes;
 
+    /**
+     * Filter posts in respect to caller's reaction
+     * Require auth - without valid JWT result in HTTP 401
+     */
+    @Pattern(regexp = "like|dislike")
+    private String reactionType;
+
     private String cursor;
 
     @Min(1) @Max(100)
@@ -89,7 +96,8 @@ public class PostFeedRequest {
                 latitude,
                 longitude,
                 radiusKm,
-                participationTypes
+                participationTypes,
+                reactionType
         );
     }
 }
