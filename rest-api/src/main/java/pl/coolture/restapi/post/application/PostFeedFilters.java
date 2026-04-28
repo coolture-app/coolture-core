@@ -6,17 +6,21 @@ import java.util.UUID;
 
 /**
  * Container for every filter param of GET /posts.
+ * Should be created in the controller from PostFeedRequest
+ * in order to isolate service from knowing about HTTP
  */
 public record PostFeedFilters(
-        String     q,
-        UUID       categoryId,
-        List<String> tags,
-        UUID       authorId,
-        String     status,
-        String     visibility,
-        String     type,
-        Instant    startsFrom,
-        Instant    startsTo,
-        Double     latitude,
-        Double     longitude,
-        Double     radiusKm) {}
+        String          q,
+        UUID            categoryId,
+        List<String>    tags,
+        UUID            authorId,
+        String          status,
+        String          visibility,
+        String          type,
+        Instant         startsFrom,
+        Instant         startsTo,
+        Double          latitude,
+        Double          longitude,
+        Double          radiusKm,
+        List<String>    participationTypes
+) {}

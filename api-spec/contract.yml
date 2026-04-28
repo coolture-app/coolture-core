@@ -425,6 +425,7 @@ paths:
         - $ref: '#/components/parameters/TypeParam'
         - $ref: '#/components/parameters/StartsFromParam'
         - $ref: '#/components/parameters/StartsToParam'
+        - $ref: '#/components/parameters/ParticipationTypesParam'
         - $ref: '#/components/parameters/LatitudeParam'
         - $ref: '#/components/parameters/LongitudeParam'
         - $ref: '#/components/parameters/RadiusKmParam'
@@ -447,6 +448,8 @@ paths:
                     $ref: '#/components/schemas/PaginationMeta'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: [Posts]
       summary: Publish a new cultural event post
@@ -1016,6 +1019,28 @@ components:
         format: double
         minimum: 0.1
         maximum: 500
+    ParticipationTypesParam:
+      name: participationTypes
+      in: query
+      description: |
+        Filter posts by the authenticated caller's participation status.
+        
+        Multiple value may be provided, e.g.:
+        
+        `?participationTypes=interested&participationTypes=takes_part`
+        
+        Requires authentication otherwise using this filter without valid JWT
+        returns HTTP 401.
+        
+        Intended for calendar view or filtered feed view that show upcoming events
+        the user has signed up for.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+          enum: [interested, takes_part]
 
   schemas:
     # Generic
