@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
+import pl.coolture.restapi.post.application.PostFeedFilters;
 
 import java.time.Instant;
 import java.util.List;
@@ -70,4 +71,25 @@ public class PostFeedRequest {
 
     @Min(1) @Max(100)
     private int limit = 20;
+
+    /**
+     * to avoid mapping fields one by one that is prune to mistakes
+     */
+    public PostFeedFilters toFilters() {
+        return new PostFeedFilters(
+                q,
+                categoryId,
+                tags,
+                authorId,
+                status,
+                visibility,
+                type,
+                startsFrom,
+                startsTo,
+                latitude,
+                longitude,
+                radiusKm,
+                participationTypes
+        );
+    }
 }

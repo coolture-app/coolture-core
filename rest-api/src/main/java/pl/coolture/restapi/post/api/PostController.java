@@ -9,10 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pl.coolture.restapi.common.config.security.SecurityUtils;
 import pl.coolture.restapi.common.pagination.CursorPage;
-import pl.coolture.restapi.post.api.dto.PostCardDto;
-import pl.coolture.restapi.post.api.dto.PostCreateRequest;
-import pl.coolture.restapi.post.api.dto.PostDetailDto;
-import pl.coolture.restapi.post.api.dto.PostUpdateRequest;
+import pl.coolture.restapi.post.api.dto.*;
 import pl.coolture.restapi.post.application.PostFeedFilters;
 import pl.coolture.restapi.post.application.PostService;
 
@@ -23,29 +20,11 @@ public class PostController {
 
     private final PostService postService;
 
+    // ModelAttribute annotation treats every field as optional
     @GetMapping
-    public CursorPage<PostCardDto> getFeed(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) List<String> tags,
-            @RequestParam(required = false) UUID authorId,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String visibility,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) Instant startsFrom,
-            @RequestParam(required = false) Instant startsTo,
-            @RequestParam(required = false) Double latitude,
-            @RequestParam(required = false) Double longitude,
-            @RequestParam(required = false) Double radiusKm,
-            @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
-
-        var filters = new PostFeedFilters(
-                q, categoryId, tags, authorId, status, visibility, type,
-                startsFrom, startsTo, latitude, longitude, radiusKm);
-
+    public CursorPage<PostCardDto> getFeed(@ModelAttribute @Valid PostFeedRequest req) {
         UUID callerId = SecurityUtils.getCurrentUserIdOrNull();
-        return postService.getFeed(callerId, filters, cursor, limit);
+        return postService.getFeed(callerId, req.toFilters(), req.getCursor(), req.getLimit());
     }
 
     @GetMapping("/{postId}")
