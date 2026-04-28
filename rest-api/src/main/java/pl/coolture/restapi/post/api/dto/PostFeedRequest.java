@@ -31,8 +31,16 @@ public class PostFeedRequest {
 
     private UUID authorId;
 
+    /**
+     * TODO: only user with ADMIN role
+     *  should be able to get posts with status 'DELETED'
+     */
     private String status;
 
+    /**
+     * TODO: request with visibility set to PRIVATE or FRIENDS
+     *  should throw HTTP 401 when unauthed user
+     */
     private String visibility;
 
     private String type;
