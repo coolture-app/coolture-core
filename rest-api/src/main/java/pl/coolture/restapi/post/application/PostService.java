@@ -1,7 +1,5 @@
 package pl.coolture.restapi.post.application;
 
-import static org.springframework.util.StringUtils.toStringArray;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
