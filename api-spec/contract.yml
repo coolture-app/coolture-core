@@ -408,6 +408,37 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /event-locations:
+    get:
+      tags: [EventLocations]
+      summary: Fetch event locations
+      description: |
+        Paginated list of all event_locations rows from DB. 
+        Filtering parameters maybe will be added later 
+        (by city, country, proximity, etc.).
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of event locations
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ items, page ]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EventLocation'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /posts:
     get:
       tags: [Posts]
@@ -1282,10 +1313,11 @@ components:
 
     EventLocation:
       type: object
-      required: [countryCode, postalCode, city, coordinates]
+      required: [id, countryCode, postalCode, city, coordinates, createdAt]
+      description: Event location returned in responses. ID in responses always present.
       properties:
         id:
-          type: ["string", "null"]
+          type: "string"
           format: uuid
         countryCode:
           type: string
@@ -1298,6 +1330,41 @@ components:
           maxLength: 16
         street:
           type: ["string", "null"]
+          maxLength: 128
+        postalCode:
+          type: string
+          maxLength: 16
+        city:
+          type: string
+          maxLength: 128
+        coordinates:
+          $ref: '#/components/schemas/GeoPoint'
+        createdAt:
+          type: string
+          format: date-time
+
+    EventLocationRequest:
+      type: object
+      required: [ countryCode, postalCode, city, coordinates ]
+      description: |
+        Location data accepted on input, eg. from form. 
+        The `id` field is server-generated and not read from request bodies. 
+        On post create/update the data is persisted into
+        a new (or the post's existing) event_locations row -
+        each post owns its own row.
+      properties:
+        countryCode:
+          type: string
+          minLength: 3
+          maxLength: 3
+        venueName:
+          type: [ "string", "null" ]
+          maxLength: 64
+        buildingNum:
+          type: [ "string", "null" ]
+          maxLength: 16
+        street:
+          type: [ "string", "null" ]
           maxLength: 128
         postalCode:
           type: string
@@ -1481,7 +1548,7 @@ components:
           $ref: '#/components/schemas/PostVisibility'
         location:
           oneOf:
-            - $ref: '#/components/schemas/EventLocation'
+            - $ref: '#/components/schemas/EventLocationRequest'
             - type: 'null'
           description: Required for OFFLINE, ignored for ONLINE.
         mediaIds:
@@ -1528,7 +1595,7 @@ components:
           $ref: '#/components/schemas/PostVisibility'
         location:
           oneOf:
-            - $ref: '#/components/schemas/EventLocation'
+            - $ref: '#/components/schemas/EventLocationRequest'
             - type: 'null'
         mediaIds:
           type: array
