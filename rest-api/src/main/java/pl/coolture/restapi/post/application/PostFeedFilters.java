@@ -1,5 +1,7 @@
 package pl.coolture.restapi.post.application;
 
+import lombok.Builder;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -9,6 +11,7 @@ import java.util.UUID;
  * Should be created in the controller from PostFeedRequest
  * in order to isolate service from knowing about HTTP
  */
+@Builder
 public record PostFeedFilters(
         String          q,
         UUID            categoryId,

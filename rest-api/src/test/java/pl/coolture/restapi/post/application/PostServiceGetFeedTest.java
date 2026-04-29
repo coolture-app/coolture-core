@@ -37,39 +37,49 @@ class PostServiceGetFeedTest {
     private PostService postService;
 
     private static PostFeedFilters emptyFilters() {
-        return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null);
+        return PostFeedFilters.builder()
+                .build();
     }
 
     private static PostFeedFilters filtersWithParticipation(List<String> types) {
-        return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, null, null, null, types, null);
+        return PostFeedFilters.builder()
+                .participationTypes(types)
+                .build();
     }
 
     private static PostFeedFilters filtersWithReaction(String reactionType) {
-        return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, null, null, null, null, reactionType);
+        return PostFeedFilters.builder()
+                .reactionType(reactionType)
+                .build();
     }
 
     private static PostFeedFilters filtersWithQ(String q) {
-        return new PostFeedFilters(q, null, null, null, null,
-                null, null, null, null, null, null, null, null, null);
+        return PostFeedFilters.builder()
+                .q(q)
+                .build();
     }
 
     private static PostFeedFilters filtersWithTags(List<String> tags) {
-        return new PostFeedFilters(null, null, tags, null, null,
-                null, null, null, null, null, null, null, null, null);
+        return PostFeedFilters.builder()
+                .tags(tags)
+                .build();
     }
 
     private static PostFeedFilters filtersWithRadius(Double radiusKm) {
         // lat/lng kept non-null so the geo filter is meaningful
-        return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, 52.0, 18.0, radiusKm, null, null);
+        return PostFeedFilters.builder()
+                .latitude(-15.0)
+                .longitude(62.5)
+                .radiusKm(radiusKm)
+                .build();
     }
 
     /** Minimal PostCardDto with an id and createdAt, two fields CursorPage needs. */
     private static PostCardDto cardDto(UUID id, Instant createdAt) {
-        return PostCardDto.builder().id(id).createdAt(createdAt).build();
+        return PostCardDto.builder()
+                .id(id)
+                .createdAt(createdAt)
+                .build();
     }
 
     /**

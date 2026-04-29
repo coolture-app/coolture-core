@@ -83,21 +83,21 @@ public class PostFeedRequest {
      * to avoid mapping fields one by one that is prune to mistakes
      */
     public PostFeedFilters toFilters() {
-        return new PostFeedFilters(
-                q,
-                categoryId,
-                tags,
-                authorId,
-                status,
-                visibility,
-                type,
-                startsFrom,
-                startsTo,
-                latitude,
-                longitude,
-                radiusKm,
-                participationTypes,
-                reactionType
-        );
+        return PostFeedFilters.builder()
+                .q(q)
+                .authorId(authorId)
+                .categoryId(categoryId)
+                .tags(tags)
+                .type(type)
+                .reactionType(reactionType)
+                .participationTypes(participationTypes)
+                .latitude(latitude)
+                .longitude(longitude)
+                .radiusKm(radiusKm)
+                .visibility(visibility)
+                .status(status)
+                .startsFrom(startsFrom)
+                .startsTo(startsTo)
+                .build();
     }
 }
