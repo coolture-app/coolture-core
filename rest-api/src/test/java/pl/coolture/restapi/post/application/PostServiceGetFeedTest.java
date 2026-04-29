@@ -24,6 +24,8 @@ import pl.coolture.restapi.post.domain.Post;
 import pl.coolture.restapi.post.domain.PostRepository;
 import pl.coolture.restapi.reaction.application.ReactionService;
 import pl.coolture.restapi.reaction.domain.ReactionType;
+import pl.coolture.restapi.user.application.UserAvatarService;
+import pl.coolture.restapi.user.domain.User;
 
 @ExtendWith(MockitoExtension.class)
 class PostServiceGetFeedTest {
@@ -32,6 +34,8 @@ class PostServiceGetFeedTest {
     @Mock private CursorCodec             cursorCodec;
     @Mock private ReactionService         reactionService;
     @Mock private ParticipationService    participationService;
+    @Mock private UserAvatarService       userAvatarService;
+
 
     @InjectMocks
     private PostService postService;
@@ -88,14 +92,23 @@ class PostServiceGetFeedTest {
      * Call this helper first, then layer extra stubs on top.
      */
     private List<Post> stubRepoReturning(List<PostCardDto> dtos) {
-        List<Post> posts = dtos.stream().map(d -> mock(Post.class)).toList();
+        User author = mock(User.class);
+        when(author.getId()).thenReturn(UUID.randomUUID());
+
+        List<Post> posts = dtos.stream().map(d -> {
+            Post p = mock(Post.class);
+            when(p.getAuthor()).thenReturn(author);
+            return p;
+        }).toList();
 
         when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                 .thenReturn(posts);
 
+        when(userAvatarService.resolveThumbnails(anyList())).thenReturn(Map.of());
+
         for (int i = 0; i < posts.size(); i++) {
-            when(postMapper.toCard(posts.get(i))).thenReturn(dtos.get(i));
+            when(postMapper.toCard(eq(posts.get(i)), any())).thenReturn(dtos.get(i));
         }
 
         return posts;
