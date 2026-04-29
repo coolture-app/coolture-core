@@ -38,28 +38,33 @@ class PostServiceGetFeedTest {
 
     private static PostFeedFilters emptyFilters() {
         return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
     }
 
     private static PostFeedFilters filtersWithParticipation(List<String> types) {
         return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, null, null, null, types);
+                null, null, null, null, null, null, null, types, null);
+    }
+
+    private static PostFeedFilters filtersWithReaction(String reactionType) {
+        return new PostFeedFilters(null, null, null, null, null,
+                null, null, null, null, null, null, null, null, reactionType);
     }
 
     private static PostFeedFilters filtersWithQ(String q) {
         return new PostFeedFilters(q, null, null, null, null,
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
     }
 
     private static PostFeedFilters filtersWithTags(List<String> tags) {
         return new PostFeedFilters(null, null, tags, null, null,
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null);
     }
 
     private static PostFeedFilters filtersWithRadius(Double radiusKm) {
         // lat/lng kept non-null so the geo filter is meaningful
         return new PostFeedFilters(null, null, null, null, null,
-                null, null, null, null, 52.0, 18.0, radiusKm, null);
+                null, null, null, null, 52.0, 18.0, radiusKm, null, null);
     }
 
     /** Minimal PostCardDto with an id and createdAt, two fields CursorPage needs. */
@@ -76,7 +81,7 @@ class PostServiceGetFeedTest {
         List<Post> posts = dtos.stream().map(d -> mock(Post.class)).toList();
 
         when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                 .thenReturn(posts);
 
         for (int i = 0; i < posts.size(); i++) {
@@ -129,7 +134,7 @@ class PostServiceGetFeedTest {
         void nullParticipationTypes_andNullCallerId_doesNotValidate() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             assertThatCode(() -> postService.getFeed(null, emptyFilters(), null, 10))
@@ -140,7 +145,7 @@ class PostServiceGetFeedTest {
         void emptyParticipationTypes_andNullCallerId_proceedsWithoutException() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             assertThatCode(() -> postService.getFeed(null, filtersWithParticipation(List.of()), null, 10))
@@ -154,10 +159,59 @@ class PostServiceGetFeedTest {
 
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             assertThatCode(() -> postService.getFeed(callerId, filters, null, 10))
+                    .doesNotThrowAnyException();
+        }
+    }
+
+    @Nested
+    class ReactionFilterValidation {
+
+        @Test
+        void nullCallerId_withReactionType_throwsUnauthenticated() {
+            var filters = filtersWithReaction("like");
+
+            assertThatThrownBy(() -> postService.getFeed(null, filters, null, 10))
+                    .isInstanceOf(UnauthenticatedUserException.class);
+
+            verifyNoInteractions(postRepository);
+        }
+
+        @Test
+        void unknownReactionType_throwsBadRequestContainingBadValue() {
+            var filters = filtersWithReaction("love");
+
+            assertThatThrownBy(() -> postService.getFeed(UUID.randomUUID(), filters, null, 10))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("love")
+                    .hasMessageContaining("Allowed values:");
+
+            verifyNoInteractions(postRepository);
+        }
+
+        @Test
+        void nullReactionType_andNullCallerId_doesNotValidate() {
+            stubNoCursor();
+            when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    .thenReturn(List.of());
+
+            assertThatCode(() -> postService.getFeed(null, emptyFilters(), null, 10))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        void validReactionType_andAuthenticatedCaller_proceedsWithoutException() {
+            UUID callerId = UUID.randomUUID();
+            stubNoCursor();
+            when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    .thenReturn(List.of());
+
+            assertThatCode(() -> postService.getFeed(callerId, filtersWithReaction("like"), null, 10))
                     .doesNotThrowAnyException();
         }
     }
@@ -169,14 +223,14 @@ class PostServiceGetFeedTest {
         void nullCursor_passesNullCursorFieldsToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, emptyFilters(), null, 10);
 
             verify(postRepository).findFeed(
                     any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(),
                     isNull(),   // cursorCreatedAt
                     isNull(),   // cursorId
                     anyInt());
@@ -190,14 +244,14 @@ class PostServiceGetFeedTest {
 
             when(cursorCodec.decode("valid-cursor")).thenReturn(Optional.of(payload));
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, emptyFilters(), "valid-cursor", 10);
 
             verify(postRepository).findFeed(
                     any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(),
                     eq(cursorTs),   // cursorCreatedAt
                     eq(cursorId),   // cursorId
                     anyInt());
@@ -208,14 +262,14 @@ class PostServiceGetFeedTest {
             // CursorCodec.decode contract: bad cursor => Optional.empty()
             when(cursorCodec.decode("garbled###")).thenReturn(Optional.empty());
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, emptyFilters(), "garbled###", 10);
 
             verify(postRepository).findFeed(
                     any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(),
                     isNull(),
                     isNull(),
                     anyInt());
@@ -229,7 +283,7 @@ class PostServiceGetFeedTest {
         void blankQuery_isPassedAsNullToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithQ("   "), null, 10);
@@ -237,14 +291,14 @@ class PostServiceGetFeedTest {
             verify(postRepository).findFeed(
                     isNull(),  // q
                     any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt());
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt());
         }
 
         @Test
         void nonBlankQuery_isPassedVerbatimToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithQ("spring boot"), null, 10);
@@ -252,14 +306,14 @@ class PostServiceGetFeedTest {
             verify(postRepository).findFeed(
                     eq("spring boot"),  // q
                     any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt());
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt());
         }
 
         @Test
         void nullTagsList_passesNullTagsArrayToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithTags(null), null, 10);
@@ -268,14 +322,14 @@ class PostServiceGetFeedTest {
                     any(), any(),
                     isNull(),  // tags array
                     any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), anyInt());
+                    any(), any(), any(), any(), any(), any(), any(), any(), anyInt());
         }
 
         @Test
         void emptyTagsList_passesNullTagsArrayToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithTags(List.of()), null, 10);
@@ -284,14 +338,14 @@ class PostServiceGetFeedTest {
                     any(), any(),
                     isNull(),  // empty list → null, not empty array
                     any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), anyInt());
+                    any(), any(), any(), any(), any(), any(), any(), any(), anyInt());
         }
 
         @Test
         void nonEmptyTagsList_passesTagsArrayToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithTags(List.of("music", "outdoor")), null, 10);
@@ -299,7 +353,7 @@ class PostServiceGetFeedTest {
             verify(postRepository).findFeed(
                     any(), any(),
                     argThat(arr -> Arrays.equals(arr, new String[]{"music", "outdoor"})),
-                    any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(),
                     any(), any(), any(), any(), any(), any(), any(), anyInt());
         }
 
@@ -307,7 +361,7 @@ class PostServiceGetFeedTest {
         void nullRadiusKm_passesNullRadiusMetersToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithRadius(null), null, 10);
@@ -316,14 +370,14 @@ class PostServiceGetFeedTest {
                     any(), any(), any(), any(), any(), any(), any(), any(), any(),
                     any(), any(),
                     isNull(),  // radiusMeters
-                    any(), any(), any(), any(), anyInt());
+                    any(), any(), any(), any(), any(), anyInt());
         }
 
         @Test
         void radiusKm_isMultipliedBy1000BeforePassingToRepo() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(null, filtersWithRadius(5.0), null, 10);
@@ -332,14 +386,14 @@ class PostServiceGetFeedTest {
                     any(), any(), any(), any(), any(), any(), any(), any(), any(),
                     any(), any(),
                     eq(5_000.0),  // 5 km → 5000 m
-                    any(), any(), any(), any(), anyInt());
+                    any(), any(), any(), any(), any(), anyInt());
         }
 
         @Test
         void limitPlusOneIsPassedToRepo_soHasMoreCanBeDetected() {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             int limit = 20;
@@ -348,8 +402,41 @@ class PostServiceGetFeedTest {
 
             verify(postRepository).findFeed(
                     any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                     eq(limit + 1));
+        }
+
+        @Test
+        void nullReactionType_passesNullToRepo() {
+            stubNoCursor();
+            when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    .thenReturn(List.of());
+
+            postService.getFeed(null, emptyFilters(), null, 10);
+
+            verify(postRepository).findFeed(
+                    any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(),
+                    isNull(),  // reactionType
+                    any(), any(), any(), anyInt());
+        }
+
+        @Test
+        void reactionType_isPassedVerbatimToRepo() {
+            UUID callerId = UUID.randomUUID();
+            stubNoCursor();
+            when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    .thenReturn(List.of());
+
+            postService.getFeed(callerId, filtersWithReaction("dislike"), null, 10);
+
+            verify(postRepository).findFeed(
+                    any(), any(), any(), any(), any(), any(), any(),
+                    any(), any(), any(), any(), any(), any(),
+                    eq("dislike"),  // reactionType
+                    any(), any(), any(), anyInt());
         }
     }
 
@@ -386,7 +473,7 @@ class PostServiceGetFeedTest {
             UUID callerId = UUID.randomUUID();
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),
-                    any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
+                    any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
             postService.getFeed(callerId, emptyFilters(), null, 10);
