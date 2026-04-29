@@ -457,6 +457,7 @@ paths:
         - $ref: '#/components/parameters/StartsFromParam'
         - $ref: '#/components/parameters/StartsToParam'
         - $ref: '#/components/parameters/ParticipationTypesParam'
+        - $ref: '#/components/parameters/ReactionTypeParam'
         - $ref: '#/components/parameters/LatitudeParam'
         - $ref: '#/components/parameters/LongitudeParam'
         - $ref: '#/components/parameters/RadiusKmParam'
@@ -1072,6 +1073,17 @@ components:
         items:
           type: string
           enum: [interested, takes_part]
+    ReactionTypeParam:
+      name: reactionType
+      in: query
+      description: |
+        Filter posts by the authenticated caller's reaction.
+        Allowed values: `like`, `dislike`.
+        Single value only.
+        Requires authentication.
+      schema:
+        type: string
+        enum: [like, dislike]
 
   schemas:
     # Generic

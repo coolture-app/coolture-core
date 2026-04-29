@@ -44,6 +44,7 @@ public class PostService {
   private static final String VISIBILITY_PUBLIC = "PUBLIC";
 
   private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("interested", "takes_part");
+  private static final Set<String> VALID_REACTION_TYPES      = Set.of("like", "dislike");
 
   private final PostRepository postRepository;
   private final UserRepository userRepository;
@@ -70,6 +71,7 @@ public class PostService {
       UUID callerId, PostFeedFilters f, String cursor, int limit) {
 
     validateParticipationFilter(f.participationTypes(), callerId);
+    validateReactionFilter(f.reactionType(), callerId);
 
     var payload = cursorCodec.decode(cursor);
 
@@ -90,6 +92,7 @@ public class PostService {
             f.longitude(),
             radiusMeters,
             toNullableArray(f.participationTypes()),
+            f.reactionType(),
             callerId,
             payload.map(CursorPayload::createdAt).orElse(null),
             payload.map(CursorPayload::id).orElse(null),
@@ -290,6 +293,21 @@ public class PostService {
               + unknown
               + ". Allowed values: "
               + VALID_PARTICIPATION_TYPES);
+    }
+  }
+
+  private void validateReactionFilter(String reactionType, UUID callerId) {
+    if (reactionType == null) return;
+
+    if (callerId == null) {
+      throw new UnauthenticatedUserException(
+              "Authentication is required to filter by reaction type");
+    }
+
+    if (!VALID_REACTION_TYPES.contains(reactionType)) {
+      throw new BadRequestException(
+              "Unknown reaction type: " + reactionType
+                + ". Allowed values: " + VALID_REACTION_TYPES);
     }
   }
 

@@ -55,6 +55,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                      WHERE pp.post_id  = p.id
                        AND pp.user_id  = CAST(:callerId AS uuid)
                        AND pp.type     = ANY(CAST(:participationTypes AS varchar[]))))
+            AND (CAST(:reactionType AS varchar) IS NULL
+                 OR EXISTS (
+                     SELECT 1 FROM post_reactions pr
+                     WHERE pr.post_id  = p.id
+                       AND pr.user_id  = CAST(:callerId AS uuid)
+                       AND pr.type::varchar = CAST(:reactionType AS varchar)))
             AND (CAST(:cursorCreatedAt AS timestamptz) IS NULL
                  OR p.created_at < CAST(:cursorCreatedAt AS timestamptz)
                  OR (p.created_at = CAST(:cursorCreatedAt AS timestamptz)
@@ -77,6 +83,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       @Param("lng") Double lng,
       @Param("radiusMeters") Double radiusMeters,
       @Param("participationTypes") String[] participationTypes,
+      @Param("reactionType") String reactionType,
       @Param("callerId") UUID callerId,
       @Param("cursorCreatedAt") Instant cursorCreatedAt,
       @Param("cursorId") UUID cursorId,
