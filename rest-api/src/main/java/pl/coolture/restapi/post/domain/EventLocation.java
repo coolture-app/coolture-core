@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.UUID;
 import lombok.*;
 import org.locationtech.jts.geom.Point;
+import java.time.Instant;
+import jakarta.persistence.PrePersist;
 
 @Entity
 @Table(name = "event_locations")
@@ -46,4 +48,14 @@ public class EventLocation {
      */
     @Column(nullable = false, columnDefinition = "geography(Point, 4326)")
     private Point coordinates;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }
