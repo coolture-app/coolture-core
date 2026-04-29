@@ -35,6 +35,18 @@ public class Post {
     /**
      * Null for ONLINE events. cascade = ALL so the location is persisted
      * together with the post; we treat it as owned by the post.
+     *
+     * Cascade ALL provides the same lifecycle to event_location
+     * as happens to the post it is connected to.
+     * When new Post is saved with new EventLocation
+     * then EventLocation also is persisted in DB.
+     *
+     * Post owns its location row.
+     * Each post creates its own event_locations row on insert,
+     * and that row's lifetime is tied to the post's.
+     *
+     * No two posts will ever point at the same row
+     * because nothing in the create/update flow ever reuses an id
      */
     @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "event_location_id")

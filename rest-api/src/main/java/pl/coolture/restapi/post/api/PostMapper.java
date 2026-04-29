@@ -52,10 +52,12 @@ public abstract class PostMapper {
     public abstract EventLocationDto toLocationDto(EventLocation loc);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "coordinates", source = "coordinates")
     public abstract EventLocation toLocationEntity(EventLocationDto dto);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "coordinates", source = "coordinates")
     public abstract void updateLocation(@MappingTarget EventLocation loc, EventLocationDto dto);
 
