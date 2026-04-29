@@ -1,5 +1,7 @@
 package pl.coolture.restapi.post.api.dto;
 
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +30,7 @@ public class PostFeedRequest {
 
     private UUID categoryId;
 
+    @ArraySchema(schema = @Schema(type = "string", maxLength = 32))
     private List<@Size(max = 32) String> tags;
 
     private UUID authorId;
@@ -65,6 +68,7 @@ public class PostFeedRequest {
      * Filter posts in respect to caller's participation status
      * Require auth - without valid JWT results in HTTP 401
      */
+    @ArraySchema(schema = @Schema(type = "string", pattern = "interested|takes_part"))
     private List<@Pattern(regexp = "interested|takes_part") String> participationTypes;
 
     /**
