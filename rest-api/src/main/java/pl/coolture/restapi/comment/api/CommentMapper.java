@@ -2,9 +2,11 @@ package pl.coolture.restapi.comment.api;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.springframework.beans.factory.annotation.Autowired;
 import pl.coolture.restapi.comment.api.dto.CommentSummaryDto;
 import pl.coolture.restapi.comment.domain.Comment;
 import pl.coolture.restapi.common.mapper.BaseMapperConfig;
+import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.user.api.UserMapper;
 
 @Mapper(
@@ -13,19 +15,19 @@ import pl.coolture.restapi.user.api.UserMapper;
 )
 public abstract class CommentMapper {
 
-    /**
-     * MapStruct walks the lazy associations only as far as their primary keys,
-     * so this does not trigger SELECTs on root_comment / parent_comment / post.
-     *
-     * `depth` is computed from ancestor_ids length:
-     *   null/empty -> 0 (root)
-     *   length 1   -> 1 (first reply)
-     *   length 2   -> 2 (reply to reply, max allowed)
-     */
-    @Mapping(target = "postId",          source = "post.id")
-    @Mapping(target = "rootCommentId",   source = "rootComment.id")
-    @Mapping(target = "parentCommentId", source = "parentComment.id")
+    @Autowired
+    protected UserMapper userMapper;
+
+    @Mapping(target = "postId",          source = "c.post.id")
+    @Mapping(target = "rootCommentId",   source = "c.rootComment.id")
+    @Mapping(target = "parentCommentId", source = "c.parentComment.id")
+    @Mapping(target = "id",              source = "c.id")
+    @Mapping(target = "createdAt",       source = "c.createdAt")
+    @Mapping(target = "deletedAt",       source = "c.deletedAt")
+    @Mapping(target = "status",          source = "c.status")
+    @Mapping(target = "author",
+            expression = "java(userMapper.toSummaryDto(c.getAuthor(), authorAvatar))")
     @Mapping(target = "depth",
             expression = "java(c.getAncestorIds() == null ? 0 : c.getAncestorIds().length)")
-    public abstract CommentSummaryDto toDto(Comment c);
+    public abstract CommentSummaryDto toDto(Comment c, MediaResourceDto authorAvatar);
 }

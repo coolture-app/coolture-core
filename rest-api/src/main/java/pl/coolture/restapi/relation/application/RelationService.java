@@ -15,6 +15,7 @@ import pl.coolture.restapi.relation.domain.UserRelationId;
 import pl.coolture.restapi.relation.domain.UserRelationRepository;
 import pl.coolture.restapi.user.api.UserMapper;
 import pl.coolture.restapi.user.api.dto.UserSummaryDto;
+import pl.coolture.restapi.user.application.UserAvatarService;
 import pl.coolture.restapi.user.domain.UserRepository;
 
 @Service
@@ -29,6 +30,7 @@ public class RelationService {
     private final UserRepository         userRepository;
     private final UserMapper             userMapper;
     private final CursorCodec            cursorCodec;
+    private final UserAvatarService      userAvatarService;
 
     public CursorPage<UserSummaryDto> getFollowers(UUID userId, String cursor, int limit) {
         requireUserExists(userId);
@@ -138,9 +140,21 @@ public class RelationService {
                 UserRelation::getCreatedAt,
                 cursorCodec);
 
-        var dtos = entityPage.items().stream()
-                .map(r -> userMapper.toSummaryDto(userExtractor.apply(r)))
+        var userIds = entityPage
+                .items()
+                .stream()
+                .map(r -> userExtractor.apply(r).getId())
                 .toList();
+
+        var avatars = userAvatarService.resolveThumbnails(userIds);
+
+        var dtos = entityPage.items().stream()
+                .map(r -> {
+                    var user = userExtractor.apply(r);
+                    return userMapper.toSummaryDto(user, avatars.get(user.getId()));
+                })
+                .toList();
+
         return new CursorPage<>(dtos, entityPage.page());
     }
 

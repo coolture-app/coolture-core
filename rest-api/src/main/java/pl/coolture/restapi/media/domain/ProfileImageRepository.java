@@ -1,6 +1,8 @@
 package pl.coolture.restapi.media.domain;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,4 +18,6 @@ public interface ProfileImageRepository extends JpaRepository<ProfileImage, UUID
     @Modifying
     @Query("UPDATE ProfileImage p SET p.isActive = false, p.unsetAt = :now WHERE p.userId = :userId AND p.isActive = true")
     void deactivateAllForUser(@Param("userId") UUID userId, @Param("now") Instant now);
+
+    List<ProfileImage> findAllByUserIdInAndIsActiveTrue(Collection<UUID> userIds);
 }

@@ -23,9 +23,10 @@ import pl.coolture.restapi.user.domain.UserRepository;
 @Transactional(readOnly = true)
 public class UserService {
 
-  private final UserRepository userRepository;
-  private final UserMapper     userMapper;
-  private final CursorCodec    cursorCodec;
+  private final UserRepository    userRepository;
+  private final UserMapper        userMapper;
+  private final CursorCodec       cursorCodec;
+  private final UserAvatarService userAvatarService;
 
   /**
    * @Lazy breaks the UserService <-> RelationService circular dependency:
@@ -42,18 +43,24 @@ public class UserService {
             payload.map(CursorPayload::id).orElse(null),
             limit + 1);  // +1 to detect next page
 
-    var dtos = rows.stream().map(userMapper::toSummaryDto).toList();
+    var avatars = userAvatarService.resolveThumbnails(
+            rows.stream().map(User::getId).toList());
+
+    var dtos = rows.stream()
+            .map(u -> userMapper.toSummaryDto(u, avatars.get(u.getId())))
+            .toList();
 
     return CursorPage.of(dtos, limit, UserSummaryDto::id, UserSummaryDto::createdAt, cursorCodec);
   }
 
   public UserProfileDto getById(UUID id) {
-    return userMapper.toProfileDto(findOrThrow(id));
+    return userMapper.toProfileDto(findOrThrow(id), userAvatarService.resolveFull(id));
   }
 
   /** enriches profile with caller's relation context. */
   public UserProfileDto getByIdForCaller(UUID targetId, UUID callerId) {
-    var profile = userMapper.toProfileDto(findOrThrow(targetId));
+    var profile = userMapper.toProfileDto(findOrThrow(targetId), userAvatarService.resolveFull(targetId));
+
     return targetId.equals(callerId) ? profile : withRelations(profile, callerId, targetId);
   }
 
@@ -61,7 +68,9 @@ public class UserService {
   public UserProfileDto getByUsernameForCaller(String username, UUID callerId) {
     var user    = userRepository.findByUsername(username)
             .orElseThrow(() -> new ResourceNotFoundException("User", username));
-    var profile = userMapper.toProfileDto(user);
+
+    var profile = userMapper.toProfileDto(user, userAvatarService.resolveFull(user.getId()));
+
     return user.getId().equals(callerId) ? profile : withRelations(profile, callerId, user.getId());
   }
 
@@ -73,7 +82,7 @@ public class UserService {
 
     User user = findOrThrow(targetId);
     userMapper.updateEntity(request, user);
-    return userMapper.toProfileDto(user);
+    return userMapper.toProfileDto(user, userAvatarService.resolveFull(targetId));
   }
 
   /**
