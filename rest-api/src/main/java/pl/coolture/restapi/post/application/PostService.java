@@ -17,6 +17,7 @@ import pl.coolture.restapi.common.pagination.CursorPage;
 import pl.coolture.restapi.common.pagination.CursorPayload;
 import pl.coolture.restapi.dictionary.domain.EventCategory;
 import pl.coolture.restapi.dictionary.domain.EventCategoryRepository;
+import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.domain.Media;
 import pl.coolture.restapi.media.domain.MediaRepository;
 import pl.coolture.restapi.participation.application.ParticipationService;
@@ -28,6 +29,7 @@ import pl.coolture.restapi.post.domain.PostMedia;
 import pl.coolture.restapi.post.domain.PostRepository;
 import pl.coolture.restapi.reaction.application.ReactionService;
 import pl.coolture.restapi.reaction.domain.ReactionType;
+import pl.coolture.restapi.user.application.UserAvatarService;
 import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.user.domain.UserRepository;
 
@@ -55,6 +57,7 @@ public class PostService {
   private final CommentService commentService;
   private final ReactionService reactionService;
   private final ParticipationService participationService;
+  private final UserAvatarService userAvatarService;
 
   /**
    * Paginated feed with optional filters and cursor pagination.
@@ -98,19 +101,36 @@ public class PostService {
             payload.map(CursorPayload::id).orElse(null),
             limit + 1);
 
-    List<PostCardDto> dtos = rows.stream().map(postMapper::toCard).toList();
+    List<UUID> authorIds = rows
+            .stream()
+            .map(p -> p.getAuthor().getId())
+            .toList();
+
+    Map<UUID, MediaResourceDto> avatars = userAvatarService.resolveThumbnails(authorIds);
+
+    List<PostCardDto> dtos = rows.stream()
+            .map(p -> postMapper.toCard(p, avatars.get(p.getAuthor().getId())))
+            .toList();
+
     enrich(dtos, callerId);
     return CursorPage.of(dtos, limit, PostCardDto::getId, PostCardDto::getCreatedAt, cursorCodec);
   }
 
   /** callerId may be null - myReaction / myParticipation will remain null in that case. */
   public PostDetailDto getById(UUID postId, UUID callerId) {
-    PostDetailDto dto = postMapper.toDetail(findActiveOrThrow(postId));
+    Post post = findActiveOrThrow(postId);
+
+    PostDetailDto dto = postMapper.toDetail(
+            post,
+            userAvatarService.resolveThumbnail(post.getAuthor().getId()));
+
     if (callerId != null) {
       Map<UUID, ReactionType> reactions =
           reactionService.findReactionTypesForPosts(callerId, List.of(postId));
+
       Map<UUID, ParticipationType> participations =
           participationService.findParticipationTypesForPosts(callerId, List.of(postId));
+
       dto.setMyReaction(reactions.get(postId));
       dto.setMyParticipation(participations.get(postId));
     }
@@ -149,7 +169,9 @@ public class PostService {
     attachMedia(post, callerId, req.mediaIds(), req.coverMediaId());
 
     post = postRepository.save(post);
-    return postMapper.toDetail(post);
+    return postMapper.toDetail(
+            post,
+            userAvatarService.resolveThumbnail(post.getAuthor().getId()));
   }
 
   @Transactional
@@ -207,7 +229,9 @@ public class PostService {
 
     post.setStatus(STATUS_EDITED);
     post.setLastModifiedAt(Instant.now());
-    return postMapper.toDetail(post);
+    return postMapper.toDetail(
+            post,
+            userAvatarService.resolveThumbnail(post.getAuthor().getId()));
   }
 
   @Transactional

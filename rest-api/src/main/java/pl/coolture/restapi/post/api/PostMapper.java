@@ -37,16 +37,29 @@ public abstract class PostMapper {
     @Autowired
     protected MediaService mediaService;
 
+    @Autowired
+    protected UserMapper userMapper;
+
+    @Mapping(target = "id",        source = "p.id")
+    @Mapping(target = "createdAt", source = "p.createdAt")
+    @Mapping(target = "deletedAt",    source = "p.deletedAt")
+    @Mapping(target = "status",    source = "p.status")
     @Mapping(target = "myReaction", expression = "java(null)")
     @Mapping(target = "myParticipation", expression = "java(null)")
     @Mapping(target = "coverMedia", expression = "java(extractCoverMedia(p.getMedia()))")
-    public abstract PostCardDto toCard(Post p);
+    @Mapping(target = "author", expression = "java(userMapper.toSummaryDto(p.getAuthor(), authorAvatar))")
+    public abstract PostCardDto toCard(Post p, MediaResourceDto authorAvatar);
 
+    @Mapping(target = "id", source = "p.id")
+    @Mapping(target = "status", source = "p.status")
+    @Mapping(target = "createdAt", source = "p.createdAt")
+    @Mapping(target = "deletedAt", source = "p.deletedAt")
     @Mapping(target = "myReaction", expression = "java(null)")
     @Mapping(target = "myParticipation", expression = "java(null)")
     @Mapping(target = "coverMedia", expression = "java(extractCoverMedia(p.getMedia()))")
     @Mapping(target = "media", expression = "java(mapMediaList(p.getMedia()))")
-    public abstract PostDetailDto toDetail(Post p);
+    @Mapping(target = "author", expression = "java(userMapper.toSummaryDto(p.getAuthor(), authorAvatar))")
+    public abstract PostDetailDto toDetail(Post p, MediaResourceDto authorAvatar);
 
     @Mapping(target = "coordinates", source = "coordinates")
     public abstract EventLocationDto toLocationDto(EventLocation loc);
