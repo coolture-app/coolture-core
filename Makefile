@@ -9,13 +9,13 @@ ENV ?= local
 # Rememeber that HOSTNAME is system variable that is why it is named HOST_NAME in .env
 HOST_NAME ?= localhost
 
-# Secrets
-RPC_SECRET        := $(shell openssl rand -hex 32)
-ADMIN_TOKEN       := $(shell openssl rand -hex 32)
-METRICS_TOKEN     := $(shell openssl rand -hex 32)
+# Secrets - overwritten with system env vars if exist (e.g. from GH secrets during CD)
+GARAGE_RPC_SECRET        ?= $(shell openssl rand -hex 32)
+GARAGE_ADMIN_TOKEN       ?= $(shell openssl rand -hex 32)
+GARAGE_METRICS_TOKEN     ?= $(shell openssl rand -hex 32)
 # Garage access key IDs must start with "GK" do not change the prefix.
-ACCESS_KEY_ID     := GK$(shell openssl rand -hex 12)
-ACCESS_KEY_SECRET := $(shell openssl rand -hex 32)
+GARAGE_ACCESS_KEY_ID     ?= GK$(shell openssl rand -hex 12)
+GARAGE_ACCESS_KEY_SECRET ?= $(shell openssl rand -hex 32)
 
 # Internal (Docker) hostnames
 # These match the service names defined in docker-composes
