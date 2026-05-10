@@ -83,6 +83,9 @@ public class PostFeedRequest {
     @Min(1) @Max(100)
     private int limit = 20;
 
+    @Pattern(regexp = "recent|popular|upcoming")
+    private String sortBy;
+
     /**
      * to avoid mapping fields one by one that is prune to mistakes
      */
@@ -102,6 +105,7 @@ public class PostFeedRequest {
                 .status(status)
                 .startsFrom(startsFrom)
                 .startsTo(startsTo)
+                .sortBy(sortBy)
                 .build();
     }
 }

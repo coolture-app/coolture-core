@@ -442,7 +442,8 @@ paths:
   /posts:
     get:
       tags: [Posts]
-      summary: Fetch event posts feed
+      summary: Fetch event posts
+      security: []
       description: |
         The primary infinite-scroll feed endpoint. Supports filtering by category, tags, author, date range, 
         and geographic radius (for offline events). Uses cursor pagination for stability.
@@ -462,6 +463,7 @@ paths:
         - $ref: '#/components/parameters/LongitudeParam'
         - $ref: '#/components/parameters/RadiusKmParam'
         - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/SortByParam'
         - $ref: '#/components/parameters/LimitParam'
       responses:
         '200':
@@ -481,8 +483,12 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
-          $ref: '#/components/responses/Unauthorized'
-    post:
+          description: Returned when using filters that require authentication (reactionType, participationTypes) without a valid JWT.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+  post:
       tags: [Posts]
       summary: Publish a new cultural event post
       description: |
@@ -907,6 +913,18 @@ components:
       description: Opaque cursor string from a previous page response. Omit for the first page.
       schema:
         type: string
+    SortByParam:
+      name: sortBy
+      in: query
+      description: |
+        Sort order for the feed.
+        - `recent` (default): newest first
+        - `popular`: highest positive reactions first
+        - `upcoming`: soonest starting event first
+      schema:
+        type: string
+        enum: [ recent, popular, upcoming ]
+        default: recent
     LimitParam:
       name: limit
       in: query
