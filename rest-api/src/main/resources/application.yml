@@ -12,9 +12,9 @@ spring:
       resourceserver:
         jwt:
           # Must match with "iss" in JWT which has KC_HOSTNAME as a public address
-          issuer-uri: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev
+          issuer-uri: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/${KEYCLOAK_REALM:coolture-dev}
           # JWK is fetched on backend side (inside private network or when developing locally INTERNAL_HOSTNAME == HOSTNAME)
-          jwk-set-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:localhost}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
+          jwk-set-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:localhost}:${KEYCLOAK_CONNECT_PORT:8180}/realms/${KEYCLOAK_REALM:coolture-dev}/protocol/openid-connect/certs
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_CONNECT_HOSTNAME:localhost}:${POSTGRES_CONNECT_PORT:5432}/${POSTGRES_DB:coolture_db}
@@ -76,4 +76,4 @@ env:
     rest-api-port: ${REST_API_HOST_PORT:8091}
   keycloak:
     client-id: ${KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID}
-    open-id-url: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev/protocol/openid-connect/
+    open-id-url: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/${KEYCLOAK_REALM:coolture-dev}/protocol/openid-connect/

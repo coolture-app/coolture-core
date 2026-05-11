@@ -23,6 +23,9 @@ KEYCLOAK_DB_USER ?= keycloak
 KEYCLOAK_DB_PASSWORD ?= keycloak
 KEYCLOAK_DB_NAME ?= keycloak
 
+# Keycloak Realms
+KEYCLOAK_REALM := coolture-dev
+
 # Internal (Docker) hostnames
 # These match the service names defined in docker-composes
 # They are used for container-to-container communication
@@ -181,6 +184,7 @@ env:
 	echo "KEYCLOAK_DB_USER=$(KEYCLOAK_DB_USER)"; \
 	echo "KEYCLOAK_DB_PASSWORD=$(KEYCLOAK_DB_PASSWORD)"; \
 	echo "KEYCLOAK_DB_NAME=$(KEYCLOAK_DB_NAME)"; \
+	echo "KEYCLOAK_REALM=$(KEYCLOAK_REALM)"; \
 	echo "KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID=coolture-swagger"; \
 	echo "KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID=coolture-gateway"; \
 	echo "KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET=74in9eNuLAKHEIowc8LheU4CQv3pPx5x"; \
