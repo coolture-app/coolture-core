@@ -25,6 +25,7 @@ KEYCLOAK_DB_NAME ?= keycloak
 
 # Keycloak Realms
 KEYCLOAK_REALM := coolture-dev
+KEYCLOAK_TEST_USERS_PASSWORD := admin # TODO: set it to GH secret later
 
 # Internal (Docker) hostnames
 # These match the service names defined in docker-composes
@@ -191,6 +192,7 @@ env:
 	echo "KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET=YsiygIl2YKRzEyTW7UDnio05PpC8yQdJ"; \
 	echo "KEYCLOAK_ADMIN=admin"; \
 	echo "KEYCLOAK_ADMIN_PASSWORD=admin"; \
+	echo "KEYCLOAK_TEST_USERS_PASSWORD=$(KEYCLOAK_TEST_USERS_PASSWORD)"; \
 	echo ""; \
 	echo "# Postgres"; \
 	echo "POSTGRES_DB=coolture_db"; \

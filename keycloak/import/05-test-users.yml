@@ -1,0 +1,31 @@
+realm: "$(env:KEYCLOAK_REALM)"
+
+users:
+  - username: coolture_admin
+    enabled: true
+    emailVerified: true
+    firstName: Coolture
+    lastName: Admin
+    email: coolture_admin@mail.com
+    credentials:
+      - type: password
+        userLabel: "My password"
+        value: "$(env:KEYCLOAK_TEST_USERS_PASSWORD)"
+        temporary: false
+    groups:
+      - /coolture-admins
+      - /coolture-users
+
+  - username: coolture_user
+    enabled: true
+    emailVerified: true
+    firstName: Coolture
+    lastName: User
+    email: coolture_user@mail.com
+    credentials:
+      - type: password
+        userLabel: "My password"
+        value: "$(env:KEYCLOAK_TEST_USERS_PASSWORD)"
+        temporary: false
+    groups:
+      - /coolture-users
