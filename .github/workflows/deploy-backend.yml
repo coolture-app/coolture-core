@@ -49,11 +49,7 @@ jobs:
       - name: Ensure shared Docker network exists
         run: docker network inspect coolture-core_devnet || docker network create coolture-core_devnet
 
-      - name: Tear down existing stack
-        working-directory: ${{ env.DEPLOY_DIR }}
-        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml down --volumes
-
       - name: Deploy backend stack
         working-directory: ${{ env.DEPLOY_DIR }}
-        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml up --build -d
+        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml up --build -d --remove-orphans
 
