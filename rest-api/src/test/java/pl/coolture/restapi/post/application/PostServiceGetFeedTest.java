@@ -24,6 +24,7 @@ import pl.coolture.restapi.post.api.PostMapper;
 import pl.coolture.restapi.post.api.dto.PostCardDto;
 import pl.coolture.restapi.post.domain.Post;
 import pl.coolture.restapi.post.domain.PostRepository;
+import pl.coolture.restapi.post.domain.PostVisibility;
 import pl.coolture.restapi.reaction.application.ReactionService;
 import pl.coolture.restapi.reaction.domain.ReactionType;
 import pl.coolture.restapi.user.application.UserAvatarService;
@@ -625,7 +626,7 @@ class PostServiceGetFeedTest {
                     any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
-            var filters = PostFeedFilters.builder().visibility("FRIENDS").build();
+            var filters = PostFeedFilters.builder().visibility(PostVisibility.FRIENDS).build();
             postService.getFeed(null, filters, null, 10);
 
             verify(postRepository).findFeed(

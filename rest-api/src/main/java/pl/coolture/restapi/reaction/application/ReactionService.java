@@ -41,17 +41,17 @@ public class ReactionService {
         Optional<PostReaction> existing = reactionRepository.findById(pk);
 
         if (existing.isPresent()) {
-            ReactionType oldType = ReactionType.from(existing.get().getType());
+            ReactionType oldType = existing.get().getType();
             if (oldType == request.type()) {
                 return;
             }
             decrementCounter(post, oldType);
             incrementCounter(post, request.type());
-            existing.get().setType(request.type().getValue());
+            existing.get().setType(request.type());
         } else {
             reactionRepository.save(PostReaction.builder()
                     .id(pk)
-                    .type(request.type().getValue())
+                    .type(request.type())
                     .createdAt(Instant.now())
                     .build());
             incrementCounter(post, request.type());
@@ -64,7 +64,7 @@ public class ReactionService {
         PostReactionId pk = new PostReactionId(callerId, postId);
 
         reactionRepository.findById(pk).ifPresent(reaction -> {
-            decrementCounter(post, ReactionType.from(reaction.getType()));
+            decrementCounter(post, reaction.getType());
             reactionRepository.delete(reaction);
         });
     }
@@ -74,7 +74,7 @@ public class ReactionService {
         return reactionRepository.findByUserIdAndPostIds(callerId, postIds).stream()
                 .collect(Collectors.toMap(
                         r -> r.getId().getPostId(),
-                        r -> ReactionType.from(r.getType())));
+                        r -> r.getType()));
     }
 
     private static void incrementCounter(Post post, ReactionType type) {
@@ -96,7 +96,7 @@ public class ReactionService {
     private Post findActiveOrThrow(UUID postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
-        if ("DELETED".equals(post.getStatus()) || post.getDeletedAt() != null) {
+        if (pl.coolture.restapi.post.domain.PostStatus.DELETED == post.getStatus() || post.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Post", postId);
         }
         return post;

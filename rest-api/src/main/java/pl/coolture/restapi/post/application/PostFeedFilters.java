@@ -5,6 +5,9 @@ import lombok.Builder;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import pl.coolture.restapi.post.domain.PostStatus;
+import pl.coolture.restapi.post.domain.PostType;
+import pl.coolture.restapi.post.domain.PostVisibility;
 
 /**
  * Container for every filter param of GET /posts.
@@ -17,9 +20,9 @@ public record PostFeedFilters(
         UUID            categoryId,
         List<String>    tags,
         UUID            authorId,
-        String          status,
-        String          visibility,
-        String          type,
+        PostStatus      status,
+        PostVisibility  visibility,
+        PostType        type,
         Instant         startsFrom,
         Instant         startsTo,
         Double          latitude,

@@ -11,6 +11,9 @@ import lombok.Setter;
 import pl.coolture.restapi.dictionary.api.dto.EventCategoryDto;
 import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.participation.domain.ParticipationType;
+import pl.coolture.restapi.post.domain.PostStatus;
+import pl.coolture.restapi.post.domain.PostType;
+import pl.coolture.restapi.post.domain.PostVisibility;
 import pl.coolture.restapi.reaction.domain.ReactionType;
 import pl.coolture.restapi.user.api.dto.UserSummaryDto;
 
@@ -35,9 +38,9 @@ public class PostDetailDto {
     private final int negativeReactionCount;
     private final int participantCount;
     private final int commentsCount;
-    private final String type;
-    private final String status;
-    private final String visibility;
+    private final PostType type;
+    private final PostStatus status;
+    private final PostVisibility visibility;
     private final Instant createdAt;
     private final Instant lastModifiedAt;
     private final Instant deletedAt;

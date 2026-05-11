@@ -16,6 +16,7 @@ import pl.coolture.restapi.media.api.dto.MediaCompleteRequest;
 import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitRequest;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitResponse;
+import pl.coolture.restapi.media.domain.MediaPurpose;
 import pl.coolture.restapi.media.application.MediaService;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -71,7 +72,7 @@ public class MediaController {
     @PreAuthorize("hasRole('COOLTURE_ADMIN')")
     @PostMapping(value = "/admin/uploads/direct", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MediaResourceDto> directUpload(
-            @RequestParam String purpose,
+            @RequestParam MediaPurpose purpose,
             @RequestParam MultipartFile file,
             @AuthenticationPrincipal Jwt jwt) throws IOException {
 

@@ -13,6 +13,7 @@ import pl.coolture.restapi.common.pagination.CursorPayload;
 import pl.coolture.restapi.relation.domain.UserRelation;
 import pl.coolture.restapi.relation.domain.UserRelationId;
 import pl.coolture.restapi.relation.domain.UserRelationRepository;
+import pl.coolture.restapi.relation.domain.UserRelationType;
 import pl.coolture.restapi.user.api.UserMapper;
 import pl.coolture.restapi.user.api.dto.UserSummaryDto;
 import pl.coolture.restapi.user.application.UserAvatarService;
@@ -23,8 +24,8 @@ import pl.coolture.restapi.user.domain.UserRepository;
 @Transactional(readOnly = true)
 public class RelationService {
 
-    private static final String FOLLOW = "FOLLOW";
-    private static final String BLOCK  = "BLOCK";
+    private static final UserRelationType FOLLOW = UserRelationType.FOLLOW;
+    private static final UserRelationType BLOCK  = UserRelationType.BLOCK;
 
     private final UserRelationRepository relationRepository;
     private final UserRepository         userRepository;
@@ -119,7 +120,7 @@ public class RelationService {
         return relationRepository.existsByIdAndType(new UserRelationId(sourceId, targetId), BLOCK);
     }
 
-    private void save(UserRelationId id, String type) {
+    private void save(UserRelationId id, UserRelationType type) {
         var source = userRepository.getReferenceById(id.getSourceUserId());
         var target = userRepository.getReferenceById(id.getTargetUserId());
         relationRepository.save(UserRelation.builder()

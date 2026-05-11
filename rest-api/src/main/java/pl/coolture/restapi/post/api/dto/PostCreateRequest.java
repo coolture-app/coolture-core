@@ -5,6 +5,8 @@ import jakarta.validation.constraints.*;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import pl.coolture.restapi.post.domain.PostType;
+import pl.coolture.restapi.post.domain.PostVisibility;
 
 public record PostCreateRequest(
         @NotNull
@@ -31,11 +33,9 @@ public record PostCreateRequest(
         List<@Size(max = 32) String> tags,
 
         @NotNull
-        @Pattern(regexp = "OFFLINE|ONLINE")
-        String type,
+        PostType type,
 
-        @Pattern(regexp = "PUBLIC|PRIVATE|FRIENDS")
-        String visibility,
+        PostVisibility visibility,
 
         @Valid EventLocationDto
         location,

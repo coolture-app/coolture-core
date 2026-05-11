@@ -18,6 +18,8 @@ import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitRequest;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitResponse;
 import pl.coolture.restapi.media.domain.Media;
+import pl.coolture.restapi.media.domain.MediaPurpose;
+import pl.coolture.restapi.media.domain.MediaStatus;
 import pl.coolture.restapi.media.domain.MediaRepository;
 import pl.coolture.restapi.common.config.storage.PresignService;
 import pl.coolture.restapi.common.config.storage.S3Properties;
@@ -33,9 +35,9 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 @Transactional(readOnly = true)
 public class MediaService {
 
-    private static final String STATUS_PENDING  = "PENDING";
-    private static final String STATUS_UPLOADED = "UPLOADED";
-    private static final String STATUS_DELETED  = "DELETED";
+    private static final MediaStatus STATUS_PENDING  = MediaStatus.PENDING;
+    private static final MediaStatus STATUS_UPLOADED = MediaStatus.UPLOADED;
+    private static final MediaStatus STATUS_DELETED  = MediaStatus.DELETED;
 
     private final MediaRepository  mediaRepository;
     private final PresignService   presignService;
@@ -160,7 +162,7 @@ public class MediaService {
      * Used by the /media/uploads/direct convenience endpoint.
      */
     @Transactional
-    public MediaResourceDto directUpload(UUID ownerId, String purpose, MultipartFile file) throws IOException {
+    public MediaResourceDto directUpload(UUID ownerId, MediaPurpose purpose, MultipartFile file) throws IOException {
         String ext = extractExtension(
                 Optional.ofNullable(file.getOriginalFilename()).orElse("file.bin"));
         String objectKey = "%s/%s/%s.%s".formatted(purpose, ownerId, UUID.randomUUID(), ext);

@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import pl.coolture.restapi.post.domain.PostType;
+import pl.coolture.restapi.post.domain.PostVisibility;
 
 /**
  * All fields optional. Null do not change previous values
@@ -29,11 +31,9 @@ public record PostUpdateRequest(
         @Size(max = 10)
         List<@Size(max = 32) String> tags,
 
-        @Pattern(regexp = "OFFLINE|ONLINE")
-        String type,
+        PostType type,
 
-        @Pattern(regexp = "PUBLIC|PRIVATE|FRIENDS")
-        String visibility,
+        PostVisibility visibility,
 
         @Valid
         EventLocationDto location,

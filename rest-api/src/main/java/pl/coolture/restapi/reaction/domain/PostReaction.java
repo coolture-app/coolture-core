@@ -18,8 +18,9 @@ public class PostReaction {
     private PostReactionId id;
 
     /** matches reaction_type enum in DB schema. */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String type;
+    private ReactionType type;
 
     @Column(nullable = false)
     private Instant createdAt;

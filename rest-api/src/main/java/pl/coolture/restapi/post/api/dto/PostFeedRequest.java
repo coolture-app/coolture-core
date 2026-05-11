@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
 import pl.coolture.restapi.post.application.PostFeedFilters;
+import pl.coolture.restapi.post.domain.PostStatus;
+import pl.coolture.restapi.post.domain.PostType;
+import pl.coolture.restapi.post.domain.PostVisibility;
 
 import java.time.Instant;
 import java.util.List;
@@ -39,15 +42,15 @@ public class PostFeedRequest {
      * TODO: only user with ADMIN role
      *  should be able to get posts with status 'DELETED'
      */
-    private String status;
+    private PostStatus status;
 
     /**
      * TODO: request with visibility set to PRIVATE or FRIENDS
      *  should throw HTTP 401 when unauthed user
      */
-    private String visibility;
+    private PostVisibility visibility;
 
-    private String type;
+    private PostType type;
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private Instant startsFrom;

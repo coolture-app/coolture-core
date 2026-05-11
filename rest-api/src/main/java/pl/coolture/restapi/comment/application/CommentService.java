@@ -25,15 +25,16 @@
     import pl.coolture.restapi.user.application.UserAvatarService;
     import pl.coolture.restapi.user.domain.User;
     import pl.coolture.restapi.user.domain.UserRepository;
+    import pl.coolture.restapi.comment.domain.CommentStatus;
 
     @Service
     @RequiredArgsConstructor
     @Transactional(readOnly = true)
     public class CommentService {
 
-        private static final String STATUS_ACTIVE  = "ACTIVE";
-        private static final String STATUS_DELETED = "DELETED";
-        private static final String POST_DELETED   = "DELETED";
+        private static final CommentStatus STATUS_ACTIVE  = CommentStatus.ACTIVE;
+        private static final CommentStatus STATUS_DELETED = CommentStatus.DELETED;
+        private static final pl.coolture.restapi.post.domain.PostStatus POST_DELETED   = pl.coolture.restapi.post.domain.PostStatus.DELETED;
 
         /** Contract: thread depth is capped at 2 (root=0, reply=1, reply-to-reply=2). */
         private static final int MAX_DEPTH = 2;

@@ -27,6 +27,8 @@ import pl.coolture.restapi.media.api.MediaController;
 import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitResponse;
 import pl.coolture.restapi.media.application.MediaService;
+import pl.coolture.restapi.media.domain.MediaPurpose;
+import pl.coolture.restapi.media.domain.MediaStatus;
 import pl.coolture.restapi.user.application.UserProvisioningService;
 
 @ControllerTestWithSecurity(MediaController.class)
@@ -85,7 +87,7 @@ class MediaControllerTest {
 
     @Test
     void completeUpload_returns200_withMediaDto() throws Exception {
-        var dto = mediaDto(MEDIA_ID, "UPLOADED");
+        var dto = mediaDto(MEDIA_ID, MediaStatus.UPLOADED);
         when(mediaService.completeUpload(eq(MEDIA_ID), eq(CALLER_ID), any()))
                 .thenReturn(dto);
 
@@ -112,7 +114,7 @@ class MediaControllerTest {
 
     @Test
     void getById_returns200_whenFound() throws Exception {
-        when(mediaService.getById(MEDIA_ID)).thenReturn(mediaDto(MEDIA_ID, "UPLOADED"));
+        when(mediaService.getById(MEDIA_ID)).thenReturn(mediaDto(MEDIA_ID, MediaStatus.UPLOADED));
 
         mockMvc.perform(get("/media/{id}", MEDIA_ID).with(jwt()))
                 .andExpect(status().isOk())
@@ -172,8 +174,8 @@ class MediaControllerTest {
                 """;
     }
 
-    static MediaResourceDto mediaDto(UUID id, String status) {
-        return new MediaResourceDto(id, "event_media", "image/jpeg",
+    static MediaResourceDto mediaDto(UUID id, MediaStatus status) {
+        return new MediaResourceDto(id, MediaPurpose.EVENT_MEDIA, "image/jpeg",
                 204800L, status, "http://localhost:8080/bucket/key?sig=abc",
                 Instant.now(), null);
     }
