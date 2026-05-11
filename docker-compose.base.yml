@@ -57,7 +57,7 @@ services:
     entrypoint: ["/bin/sh", "/init.sh"]
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5
+    image: quay.io/keycloak/keycloak:26.5.5
     hostname: ${KEYCLOAK_INTERNAL_HOSTNAME:-keycloak}
     env_file: .env
     environment:
@@ -69,8 +69,11 @@ services:
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${POSTGRES_INTERNAL_HOSTNAME:-postgres}:${POSTGRES_INTERNAL_PORT:-5432}/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
       JAVA_OPTS: "-Dkeycloak.migration.replace-placeholders=true"
-      # There is no need for DB setting bcs keycloak uses H2 in dev mode
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak/import:/opt/keycloak/data/import:ro
@@ -80,6 +83,9 @@ services:
       - ${KEYCLOAK_MANAGEMENT_HOST_PORT:-8181}:${KEYCLOAK_MANAGEMENT_INTERNAL_PORT:-8181}
     networks:
       - devnet
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       # Keycloak container does not have any CLI HTTP clients installed:
       # https://www.keycloak.org/observability/health#_healthcheck
@@ -96,9 +102,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
-    command: start-dev --import-realm
-
+      start_period: 120s # longer time when sql instead of h2 db
+    command: start
+    
   postgres:
     image: postgis/postgis:18-3.6-alpine
     hostname: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
