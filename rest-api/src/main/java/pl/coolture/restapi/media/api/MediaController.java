@@ -17,6 +17,7 @@ import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitRequest;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitResponse;
 import pl.coolture.restapi.media.application.MediaService;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/media")
@@ -67,6 +68,7 @@ public class MediaController {
      *
      * Intended for testing
      */
+    @PreAuthorize("hasRole('COOLTURE_ADMIN')")
     @PostMapping(value = "/admin/uploads/direct", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MediaResourceDto> directUpload(
             @RequestParam String purpose,
