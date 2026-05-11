@@ -11,6 +11,10 @@ spring:
 
   security:
     oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/coolture-dev
+          jwk-set-uri: http://${KEYCLOAK_CONNECT_HOSTNAME:keycloak}:${KEYCLOAK_CONNECT_PORT:8180}/realms/coolture-dev/protocol/openid-connect/certs
       client:
         provider:
           keycloak:
