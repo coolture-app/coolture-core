@@ -26,5 +26,6 @@ public record PostFeedFilters(
         Double          longitude,
         Double          radiusKm,
         List<String>    participationTypes,
-        String          reactionType
+        String          reactionType,
+        String          sortBy
 ) {}

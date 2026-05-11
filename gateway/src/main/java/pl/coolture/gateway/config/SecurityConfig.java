@@ -33,6 +33,7 @@ public class SecurityConfig {
                 auth -> auth
                         .requestMatchers("/actuator/**", "/" + bucketName + "/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts").permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler((request, response, authentication) -> {

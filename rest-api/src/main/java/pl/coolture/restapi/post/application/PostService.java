@@ -79,6 +79,7 @@ public class PostService {
     var payload = cursorCodec.decode(cursor);
 
     Double radiusMeters = (f.radiusKm() == null) ? null : f.radiusKm() * 1000.0;
+    String visibilityFilter = getVisibilityFilter(f.visibility(), callerId);
 
     List<Post> rows =
         postRepository.findFeed(
@@ -87,7 +88,7 @@ public class PostService {
             toNullableArray(f.tags()),
             f.authorId(),
             f.status(),
-            f.visibility(),
+            visibilityFilter,
             f.type(),
             f.startsFrom(),
             f.startsTo(),
@@ -99,6 +100,7 @@ public class PostService {
             callerId,
             payload.map(CursorPayload::createdAt).orElse(null),
             payload.map(CursorPayload::id).orElse(null),
+            blankToNull(f.sortBy()),
             limit + 1);
 
     List<UUID> authorIds = rows
@@ -391,5 +393,15 @@ public class PostService {
 
   private static String blankToNull(String s) {
     return (s == null || s.isBlank()) ? null : s;
+  }
+
+  private String getVisibilityFilter(String explicitFilter, UUID callerId) {
+    if (explicitFilter != null) {
+      return explicitFilter;
+    }
+    if (callerId == null) {
+      return VISIBILITY_PUBLIC;
+    }
+    return null;
   }
 }
