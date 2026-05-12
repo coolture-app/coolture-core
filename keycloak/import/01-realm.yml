@@ -3,6 +3,8 @@ enabled: true
 
 # Source: https://skycloak.io/blog/keycloak-session-timeout-configuration/
 
+# Enable registration (creation of new users)
+registrationAllowed: true
 # Enable "Remember Me" checkbox on login page
 rememberMe: true
 # Enable password reseting
