@@ -49,12 +49,9 @@ jobs:
       - name: Ensure shared Docker network exists
         run: docker network inspect coolture-core_devnet || docker network create coolture-core_devnet
 
-      - name: Force keycloak-config to re-run on next up
+      - name: Remove running containers
         working-directory: ${{ env.DEPLOY_DIR }}
-        # on first deploy keycloak-config does not exist - rm returns error then || true covers that - next step runs it
-        # on second deploy - rm deletes container and returns 0 - next step runs it
-        # if keycloak-config ever runs in this step then --stop and rm deletes it
-        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml rm -f --stop keycloak-config || true
+        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml down
 
       - name: Deploy backend stack
         working-directory: ${{ env.DEPLOY_DIR }}
