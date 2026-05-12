@@ -9,13 +9,23 @@ ENV ?= local
 # Rememeber that HOSTNAME is system variable that is why it is named HOST_NAME in .env
 HOST_NAME ?= localhost
 
-# Secrets
-RPC_SECRET        := $(shell openssl rand -hex 32)
-ADMIN_TOKEN       := $(shell openssl rand -hex 32)
-METRICS_TOKEN     := $(shell openssl rand -hex 32)
+# Secrets - overwritten with system env vars if exist (e.g. from GH secrets during CD)
+GARAGE_RPC_SECRET        ?= $(shell openssl rand -hex 32)
+GARAGE_ADMIN_TOKEN       ?= $(shell openssl rand -hex 32)
+GARAGE_METRICS_TOKEN     ?= $(shell openssl rand -hex 32)
 # Garage access key IDs must start with "GK" do not change the prefix.
-ACCESS_KEY_ID     := GK$(shell openssl rand -hex 12)
-ACCESS_KEY_SECRET := $(shell openssl rand -hex 32)
+GARAGE_ACCESS_KEY_ID     ?= GK$(shell openssl rand -hex 12)
+GARAGE_ACCESS_KEY_SECRET ?= $(shell openssl rand -hex 32)
+
+# Keycloak Database
+# the same pattern as for GarageFS i.e. load from system env if available
+KEYCLOAK_DB_USER ?= keycloak
+KEYCLOAK_DB_PASSWORD ?= keycloak
+KEYCLOAK_DB_NAME ?= keycloak
+
+# Keycloak Realms
+KEYCLOAK_REALM := coolture-dev
+KEYCLOAK_TEST_USERS_PASSWORD := admin # TODO: set it to GH secret later
 
 # Internal (Docker) hostnames
 # These match the service names defined in docker-composes
@@ -162,22 +172,27 @@ env:
 	echo "KEYCLOAK_MANAGEMENT_INTERNAL_PORT=$(I_KEYCLOAK_MGMT_PORT)"; \
 	echo ""; \
 	echo "# Garage S3"; \
-	echo "GARAGE_RPC_SECRET=$(RPC_SECRET)"; \
-	echo "GARAGE_ADMIN_TOKEN=$(ADMIN_TOKEN)"; \
-	echo "GARAGE_METRICS_TOKEN=$(METRICS_TOKEN)"; \
-	echo "GARAGE_ACCESS_KEY_ID=$(ACCESS_KEY_ID)"; \
-	echo "GARAGE_ACCESS_KEY_SECRET=$(ACCESS_KEY_SECRET)"; \
+	echo "GARAGE_RPC_SECRET=$(GARAGE_RPC_SECRET)"; \
+	echo "GARAGE_ADMIN_TOKEN=$(GARAGE_ADMIN_TOKEN)"; \
+	echo "GARAGE_METRICS_TOKEN=$(GARAGE_METRICS_TOKEN)"; \
+	echo "GARAGE_ACCESS_KEY_ID=$(GARAGE_ACCESS_KEY_ID)"; \
+	echo "GARAGE_ACCESS_KEY_SECRET=$(GARAGE_ACCESS_KEY_SECRET)"; \
 	echo "GARAGE_REGION=garage"; \
 	echo "GARAGE_BUCKET_NAME=coolture-bucket"; \
 	echo "GARAGE_KEY_NAME=coolture-key"; \
 	echo ""; \
 	echo "# Keycloak"; \
+	echo "KEYCLOAK_DB_USER=$(KEYCLOAK_DB_USER)"; \
+	echo "KEYCLOAK_DB_PASSWORD=$(KEYCLOAK_DB_PASSWORD)"; \
+	echo "KEYCLOAK_DB_NAME=$(KEYCLOAK_DB_NAME)"; \
+	echo "KEYCLOAK_REALM=$(KEYCLOAK_REALM)"; \
 	echo "KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID=coolture-swagger"; \
 	echo "KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID=coolture-gateway"; \
 	echo "KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET=74in9eNuLAKHEIowc8LheU4CQv3pPx5x"; \
 	echo "KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET=YsiygIl2YKRzEyTW7UDnio05PpC8yQdJ"; \
 	echo "KEYCLOAK_ADMIN=admin"; \
 	echo "KEYCLOAK_ADMIN_PASSWORD=admin"; \
+	echo "KEYCLOAK_TEST_USERS_PASSWORD=$(KEYCLOAK_TEST_USERS_PASSWORD)"; \
 	echo ""; \
 	echo "# Postgres"; \
 	echo "POSTGRES_DB=coolture_db"; \

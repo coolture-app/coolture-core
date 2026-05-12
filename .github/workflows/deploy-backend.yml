@@ -16,7 +16,7 @@ jobs:
     env:
       DEPLOY_DIR: /home/admin/coolture/dev/coolture-core
       DEPLOY_HOST_NAME: ${{ vars.DEPLOY_HOST_NAME }}
-      BRANCH: dev
+      BRANCH: ${{ github.ref_name }}
 
     steps:
       - name: Fix git safe directory
@@ -36,6 +36,12 @@ jobs:
 
       - name: Generate environment file first
         working-directory: ${{ env.DEPLOY_DIR }}
+        env:
+          GARAGE_RPC_SECRET: ${{ secrets.GARAGE_RPC_SECRET }}
+          GARAGE_ADMIN_TOKEN: ${{ secrets.GARAGE_ADMIN_TOKEN }}
+          GARAGE_METRICS_TOKEN: ${{ secrets.GARAGE_METRICS_TOKEN }}
+          GARAGE_ACCESS_KEY_ID: ${{ secrets.GARAGE_ACCESS_KEY_ID }}
+          GARAGE_ACCESS_KEY_SECRET: ${{ secrets.GARAGE_ACCESS_KEY_SECRET }}
         run: |
           HOST_NAME_VALUE="${DEPLOY_HOST_NAME:-localhost}"
           make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE" H_GATEWAY_PORT=8090
@@ -43,11 +49,13 @@ jobs:
       - name: Ensure shared Docker network exists
         run: docker network inspect coolture-core_devnet || docker network create coolture-core_devnet
 
-      - name: Tear down existing stack
+      - name: Force keycloak-config to re-run on next up
         working-directory: ${{ env.DEPLOY_DIR }}
-        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml down --volumes
+        # on first deploy keycloak-config does not exist - rm returns error then || true covers that - next step runs it
+        # on second deploy - rm deletes container and returns 0 - next step runs it
+        # if keycloak-config ever runs in this step then --stop and rm deletes it
+        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml rm -f --stop keycloak-config || true
 
       - name: Deploy backend stack
         working-directory: ${{ env.DEPLOY_DIR }}
-        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml up --build -d
-
+        run: docker-compose -f ${{ env.DEPLOY_DIR }}/docker-compose.base.yml -f ${{ env.DEPLOY_DIR }}/docker-compose.app.yml up --build -d --remove-orphans

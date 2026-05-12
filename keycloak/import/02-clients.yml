@@ -1,0 +1,136 @@
+realm: "$(env:KEYCLOAK_REALM)"
+
+clients:
+  - clientId: "$(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID)"
+    name: "$(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID)"
+    description: "$(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID) Client"
+    enabled: true
+
+    publicClient: false
+
+    # bearerOnly is a client (usually resource server)
+    # that never initiates login - only token validation
+    # default is false
+    bearerOnly: false
+    # Standard Authorization Code Flow
+    # default is true
+    standardFlowEnabled: true
+    # Implicit Flow - tokens are returned directly to auth endpoint
+    # Deprecated and insecure - default false
+    implicitFlowEnabled: false
+    # Direct Access Grant - resource owner password grant
+    # Client is allowed to collect credentials and exchange them for tokens
+    # default is false
+    directAccessGrantsEnabled: false
+
+    # When enabled Keycloak creates service account user for client
+    # Client can auth with its own credentials (client ID + client secret)
+    # to obtain access token for itself - ideal for machine-to-machine
+    # e.g. scraper, gateway <-> REST API healthchecks or webhooks
+    # default is probably false??
+    serviceAccountsEnabled: true
+    # If enabled turns on Fine-Grained Auth Services
+    # that is UMA or Resource-Based Auth
+    # Allows for defining resources, scopes and policies in Keycloak
+    # and enforce them via token - gateway or any other client becomes
+    # resource server that can protect endpoint based on set policies
+    # (for now false - there are no policies defined yet)
+    authorizationServicesEnabled: false
+
+    # When enabled, when user logs out of one app,
+    # Keycloak send a logout request to all participating clients
+    # using redirects - helpful to keep user logged out everywhere
+    # Front-Channel - browser plays a role of messenger, it passes redirects
+    frontchannelLogout: true
+
+    # When enabled, client is allowed to obtain all realm roles and client roles
+    # of the authenticated user, even those that are not assigned to client
+    # For safety reasons it is better to set it to false
+    fullScopeAllowed: false
+
+    # If set then user have to approve scopes,
+    # when using this client for the first time
+    consentRequired: false
+
+    protocol: openid-connect
+    # This is not public client therefore this secret is used
+    # during auth against Keycloak token endpoint
+    # Normally Keycloak generates random one when not specified
+    # But this secret needs to be known for other services that need access to token endpoint
+    secret: $(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET)
+
+    # After user auth, Keycloak sends auth code or token
+    # back to the client via redirect. Only clearly specified ones
+    # in this config are allowed to be redirect links.
+    redirectUris:
+      - "http://$(env:HOST_NAME):$(env:GATEWAY_HOST_PORT)/*"
+      - "http://$(env:GATEWAY_INTERNAL_HOSTNAME):$(env:GATEWAY_INTERNAL_PORT)/*"
+    # CORS for this client
+    # There are `allowed-origins` in the token
+    # Use only domain names, without wildcards - must much exactly
+    # If omitted all origins are allowed by default
+    webOrigins:
+      - "http://$(env:HOST_NAME):$(env:GATEWAY_HOST_PORT)"
+      - "http://$(env:GATEWAY_INTERNAL_HOSTNAME):$(env:GATEWAY_INTERNAL_PORT)"
+    
+    # Client behaviour
+    # Map of <String, String>
+    attributes:
+      # List of URIs allowed after logout
+      # If set to "+" it inherits uris from redirect uris
+      post.logout.redirect.uris: "+"
+
+      # By default PKCE is not used
+      # Enforces Proof Key for Code Exchange
+      # S256 is forcing SHA-256 usage
+      # By standards it is recommended for public clients 
+      # Here for more security - client must generate a code verifier and challenge
+      pkce.code.challenge.method: S256
+
+      # When true, this logout succeeds only if the user has an active session
+      # Back-Channel - server-to-server without browser in process
+      # Default is false
+      backchannel.logout.session.required: "true"
+
+      # As the backchannel logout session required but for frontchannel
+      # Default is false
+      frontchannel.logout.session.required: "true"
+  
+  - clientId: "$(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID)"
+    name: "$(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID)"
+    description: "$(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID) Client"
+    enabled: true
+
+    publicClient: false
+
+    bearerOnly: false
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+
+    serviceAccountsEnabled: true
+    frontchannelLogout: true
+    fullScopeAllowed: false
+    consentRequired: false
+
+    protocol: openid-connect
+    secret: $(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET)
+
+    redirectUris:
+      - "http://$(env:HOST_NAME):$(env:REST_API_HOST_PORT)/*"
+      - "http://$(env:HOST_NAME):$(env:GATEWAY_HOST_PORT)/*"
+      - "http://$(env:REST_API_INTERNAL_HOSTNAME):$(env:REST_API_INTERNAL_PORT)/*"
+      - "http://$(env:GATEWAY_INTERNAL_HOSTNAME):$(env:GATEWAY_INTERNAL_PORT)/*"
+
+    webOrigins:
+      - "http://$(env:HOST_NAME):$(env:REST_API_HOST_PORT)"
+      - "http://$(env:HOST_NAME):$(env:GATEWAY_HOST_PORT)"
+      - "http://$(env:REST_API_INTERNAL_HOSTNAME):$(env:REST_API_INTERNAL_PORT)"
+      - "http://$(env:GATEWAY_INTERNAL_HOSTNAME):$(env:GATEWAY_INTERNAL_PORT)"
+
+    # Map of <String, String>
+    attributes:
+      post.logout.redirect.uris: "+"
+      pkce.code.challenge.method: S256
+      backchannel.logout.session.required: "true"
+      frontchannel.logout.session.required: "true"
