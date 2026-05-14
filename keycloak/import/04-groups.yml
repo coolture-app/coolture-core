@@ -1,0 +1,31 @@
+realm: "$(env:KEYCLOAK_REALM)"
+
+groups:
+  - name: coolture-admins
+    path: /coolture-admins
+    realmRoles:
+      - offline_access
+      - uma_authorization
+    clientRoles:
+      $(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID):
+        - ROLE_COOLTURE_ADMIN
+      account:
+        - view-profile
+        - manage-account
+        
+  - name: coolture-users
+    path: /coolture-users
+    realmRoles:
+      - offline_access
+      - uma_authorization
+    clientRoles:
+      $(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID):
+        - ROLE_COOLTURE_USER
+      account:
+        - view-profile
+        - manage-account
+
+# Every new user that logs in to the realm gets into these groups
+# Meaning user also gets the roles attached to these groups
+defaultGroups:
+  - /coolture-users

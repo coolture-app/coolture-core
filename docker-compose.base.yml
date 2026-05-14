@@ -57,7 +57,7 @@ services:
     entrypoint: ["/bin/sh", "/init.sh"]
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5
+    image: quay.io/keycloak/keycloak:26.5.5
     hostname: ${KEYCLOAK_INTERNAL_HOSTNAME:-keycloak}
     env_file: .env
     environment:
@@ -69,17 +69,21 @@ services:
       KC_HOSTNAME_STRICT: "false" # Allow requests from non-specifed domain in dev env (e.g. localhost:port)
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      JAVA_OPTS: "-Dkeycloak.migration.replace-placeholders=true"
-      # There is no need for DB setting bcs keycloak uses H2 in dev mode
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${POSTGRES_INTERNAL_HOSTNAME:-postgres}:${POSTGRES_INTERNAL_PORT:-5432}/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
     volumes:
       - keycloak_data:/opt/keycloak/data
-      - ./keycloak/import:/opt/keycloak/data/import:ro
       - ./keycloak/export:/tmp/export
     ports:
       - ${KEYCLOAK_HOST_PORT:-8180}:${KEYCLOAK_INTERNAL_PORT:-8180}
       - ${KEYCLOAK_MANAGEMENT_HOST_PORT:-8181}:${KEYCLOAK_MANAGEMENT_INTERNAL_PORT:-8181}
     networks:
       - devnet
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       # Keycloak container does not have any CLI HTTP clients installed:
       # https://www.keycloak.org/observability/health#_healthcheck
@@ -96,8 +100,29 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
-    command: start-dev --import-realm
+      start_period: 120s # longer time when sql instead of h2 db
+    command: start
+  
+  keycloak-config:
+    image: adorsys/keycloak-config-cli:latest-26
+    env_file: .env
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - devnet
+    volumes:
+      - ./keycloak/import:/config:ro
+    environment:
+      KEYCLOAK_URL: http://${KEYCLOAK_INTERNAL_HOSTNAME:-keycloak}:${KEYCLOAK_INTERNAL_PORT:-8180}
+      KEYCLOAK_USER: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 120s
+ 
+      IMPORT_FILES_LOCATIONS: '/config/*.yml'
+      IMPORT_VAR_SUBSTITUTION_ENABLED: "true" # basic syntax is $(var_origin:VAR_NAME)
+    restart: "no" # one-shot
 
   postgres:
     image: postgis/postgis:18-3.6-alpine
@@ -107,10 +132,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_DB: ${POSTGRES_DB:-coolture_db}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak}
     volumes:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./db/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
     ports:
       - ${POSTGRES_HOST_PORT:-5430}:${POSTGRES_INTERNAL_PORT:-5432}
     networks:

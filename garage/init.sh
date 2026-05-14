@@ -17,14 +17,49 @@ if $G status 2>&1 | grep -q 'NO ROLE ASSIGNED'; then
   $G layout apply --version 1
 fi
 
-$G key import --yes \
-  -n "$GARAGE_KEY_NAME" \
-  "$GARAGE_ACCESS_KEY_ID" \
-  "$GARAGE_ACCESS_KEY_SECRET" || true
-$G bucket create "$GARAGE_BUCKET_NAME" || true
+# KEY IMPORT
+# `key info <ID>` returns non-zero value if key doesn't exist
+# Key is referenced by ID, not by name, bcs multiple keys can share the same name
+if $G key info "$GARAGE_ACCESS_KEY_ID" >/dev/null 2>&1; then
+  echo "Key: $GARAGE_ACCESS_KEY_ID already present, skipping key import"
+else
+  echo "Importing key: $GARAGE_ACCESS_KEY_ID..."
+  $G key import --yes \
+    -n "$GARAGE_KEY_NAME" \
+    "$GARAGE_ACCESS_KEY_ID" \
+    "$GARAGE_ACCESS_KEY_SECRET"
+fi
+
+# BUCKET CREATION
+if $G bucket info "$GARAGE_BUCKET_NAME" >/dev/null 2>&1; then
+  echo "Bucket $GARAGE_BUCKET_NAME already exists"
+else
+  echo "Creating bucket: $GARAGE_BUCKET_NAME..."
+  $G bucket create "$GARAGE_BUCKET_NAME"
+fi
+
+# GRANT BUCKET ACCESS TO THE KEY
+# Allowing the same key multiple times is idempotent
+echo "Allowing key: $GARAGE_ACCESS_KEY_ID to bucket: $GARAGE_BUCKET_NAME..."
 $G bucket allow "$GARAGE_BUCKET_NAME" \
-  --key "$GARAGE_KEY_NAME" \
-  --read --write --owner || true
+  --key "$GARAGE_ACCESS_KEY_ID" \
+  --read --write --owner
+
+# SAME NAME KEY DELETION
+# Removing a key auto-revokes its bucket grants
+# `key list` output looks like this:
+# ID    Created Name Expiration
+# GK... date    name ...
+echo "Trying to delete old keys..."
+$G key list 2>/dev/null | while read -r id _date name _rest; do
+  # Skip header "ID ..." and blank lines
+  # Keys are starting with "GK"
+  case "$id" in GK*) ;; *) continue ;; esac
+  if [ "$name" = "$GARAGE_KEY_NAME" ] && [ "$id" != "$GARAGE_ACCESS_KEY_ID" ]; then
+    echo "Removing old key: $id"
+    $G key delete --yes "$id" || echo "WARN: failed to delete key: $id"
+  fi
+done
 
 echo "Garage initialized."
 

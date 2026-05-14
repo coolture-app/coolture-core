@@ -1,0 +1,9 @@
+realm: "$(env:KEYCLOAK_REALM)"
+
+roles:
+  client:
+    $(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID):
+    - name: ROLE_COOLTURE_USER
+      description: "Base user role for Coolture services behind gateway"
+    - name: ROLE_COOLTURE_ADMIN
+      description: "Base admin role for Coolture services behind gateway"

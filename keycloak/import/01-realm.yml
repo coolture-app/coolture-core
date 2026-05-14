@@ -1,0 +1,80 @@
+realm: "$(env:KEYCLOAK_REALM)"
+enabled: true
+
+# Source: https://skycloak.io/blog/keycloak-session-timeout-configuration/
+
+# Enable registration (creation of new users)
+registrationAllowed: true
+# Enable "Remember Me" checkbox on login page
+rememberMe: true
+# Enable password reseting
+resetPasswordAllowed: true
+# Username edition in Keycloak (TODO: discuss it)
+editUsernameAllowed: false
+
+# Can email be used as a username
+registrationEmailAsUsername: false
+# Is login with email instead of username allowed
+loginWithEmailAllowed: true
+# Should email be verified (TODO: for now - false)
+verifyEmail: false
+
+# SSO session expiration time in seconds (user's inactivity)
+ssoSessionIdleTimeout: 1800 # 0.5 hour - after it refresh token dies
+# Absolute max SSO session expiration time regardless of activity in seconds
+ssoSessionMaxLifespan: 36000 # 10 hours - after this time re-login is required
+# Remember Me for user convenience (by default it is set to 0 and inherits from ssoSession times)
+ssoSessionIdleTimeoutRememberMe: 2592000 # 30 days
+ssoSessionMaxLifespanRememberMe: 5184000 # 60 days
+
+# Offline Refresh Token - works even if SSO Session ended (after logout)
+# Used for background procesess or mobile apps
+offlineSessionMaxLifespanEnabled: false # offline session can last indefinitely with activity
+# Offline Token must be used at least once within this windows to stay valid
+offlineSessionIdleTimeout: 2592000 # 30 days
+
+# Base client Token expiration times (default set to 0 - inherited from Realm settings)
+# Client expiration times inherit from these times
+# These times cannot exceed Realm times
+clientSessionIdleTimeout: 0
+clientSessionMaxLifespan: 0
+clientOfflineSessionIdleTimeout: 0
+clientOfflineSessionMaxLifespan: 0
+
+# OAuth2 Code Flow
+# How long an auth code is valid
+accessCodeLifespan: 60 # 1 min is default
+# Time user has to complete required action (password reset, email verification, etc.)
+accessCodeLifespanUserAction: 300 # 5 minutes is default
+# Time user has to login
+accessCodeLifespanLogin: 1800 # 30 minutes is default
+
+# Tokens become invalid when max times set for type of session token are exceeded
+# How many times can refresh token be reused before considering it as compromised
+refreshTokenMaxReuse : 0 # after first swap it is invalidated 
+# Should Keycloak revoke all tokens derived from revoked token
+revokeRefreshToken : true
+
+# Should brute force timeouts and other settings be enabled
+bruteForceProtected: true
+# Number of login failures before temporary timeout 
+failureFactor: 5
+# Temporary timeout is progressively extended during repeated failures
+# This is max wait time
+maxFailureWaitSeconds: 60 # 1 minute - default is 15 minutes
+# Minimum timeout after failed login
+minimumQuickLoginWaitSeconds: 5 # default is 60 seconds
+# Time increment per failure
+waitIncrementSeconds: 10
+# Minimum time between failed logins to count as separate ones
+quickLoginCheckMilliSeconds: 1000 # 1 second
+# Time window for counting failures - older than that are forgotten
+maxDeltaTimeSeconds: 3600 # 1 hour - 12 hours is default
+# If set to 0 user will never be locked permanently
+# So can try again after timeout no matter how many timeouts there were
+maxTemporaryLockouts: 0
+# Should user be blocked from login after reaching max # of timeouts
+permanentLockout: false
+# MULTIPLE - count failures per IP address
+# LINEAR   - count failures per username
+bruteForceStrategy: "MULTIPLE"
