@@ -34,9 +34,6 @@ public class OpenApiConfig {
         .servers(
             List.of(
                 new Server()
-                    .url("http://" + hostAddr + ":" + restApiPort + "/api")
-                    .description("Direct REST API (Resource Server)"),
-                new Server()
                     .url("http://" + hostAddr + ":" + gatewayPort + "/api")
                     .description("Via Spring Cloud Gateway (BFF)")))
         .components(
