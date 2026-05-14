@@ -7,6 +7,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Column;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +34,9 @@ public class UserRelation {
      * FOLLOW - source follows target.
      * BLOCK  - source blocks target. Replaces any existing FOLLOW in the same direction.
      */
-    private String type;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private UserRelationType type;
 
     private Instant createdAt;
 

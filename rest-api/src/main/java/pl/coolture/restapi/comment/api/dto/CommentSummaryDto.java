@@ -3,6 +3,7 @@ package pl.coolture.restapi.comment.api.dto;
 import java.time.Instant;
 import java.util.UUID;
 import pl.coolture.restapi.user.api.dto.UserSummaryDto;
+import pl.coolture.restapi.comment.domain.CommentStatus;
 
 /**
  * `depth` is derived from ancestor_ids length, not stored in the DB.
@@ -19,5 +20,5 @@ public record CommentSummaryDto(
         Instant         createdAt,
         Instant         lastEditedAt,
         Instant         deletedAt,
-        String          status
+        CommentStatus   status
 ) {}

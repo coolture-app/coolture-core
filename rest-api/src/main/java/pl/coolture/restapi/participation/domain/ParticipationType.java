@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum ParticipationType {
-    INTERESTED("interested"),
-    TAKES_PART("takes_part");
+    INTERESTED("INTERESTED"),
+    TAKES_PART("TAKES_PART");
 
     private final String value;
 

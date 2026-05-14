@@ -19,7 +19,7 @@ public interface PostParticipationRepository
             @Param("userId")  UUID userId,
             @Param("postIds") List<UUID> postIds);
 
-    default Map<UUID, String> participationTypeByPostId(UUID userId, List<UUID> postIds) {
+    default Map<UUID, ParticipationType> participationTypeByPostId(UUID userId, List<UUID> postIds) {
         return findByUserIdAndPostIds(userId, postIds).stream()
                 .collect(Collectors.toMap(p -> p.getId().getPostId(), PostParticipation::getType));
     }

@@ -39,15 +39,15 @@ public class ParticipationService {
         Optional<PostParticipation> existing = participationRepository.findById(pk);
 
         if (existing.isPresent()) {
-            ParticipationType oldType = ParticipationType.from(existing.get().getType());
+            ParticipationType oldType = existing.get().getType();
             if (oldType == request.type()) {
                 return;
             }
-            existing.get().setType(request.type().getValue());
+            existing.get().setType(request.type());
         } else {
             participationRepository.save(PostParticipation.builder()
                     .id(pk)
-                    .type(request.type().getValue())
+                    .type(request.type())
                     .createdAt(Instant.now())
                     .build());
             post.setParticipantCount(post.getParticipantCount() + 1);
@@ -72,13 +72,13 @@ public class ParticipationService {
         return participationRepository.findByUserIdAndPostIds(callerId, postIds).stream()
                 .collect(Collectors.toMap(
                         p -> p.getId().getPostId(),
-                        p -> ParticipationType.from(p.getType())));
+                        p -> p.getType()));
     }
 
     private Post findActiveOrThrow(UUID postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
-        if ("DELETED".equals(post.getStatus()) || post.getDeletedAt() != null) {
+        if (pl.coolture.restapi.post.domain.PostStatus.DELETED == post.getStatus() || post.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Post", postId);
         }
         return post;

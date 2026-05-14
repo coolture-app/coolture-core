@@ -13,13 +13,13 @@ public interface UserRelationRepository extends JpaRepository<UserRelation, User
 
     Optional<UserRelation> findById(UserRelationId id);
 
-    boolean existsByIdAndType(UserRelationId id, String type);
+    boolean existsByIdAndType(UserRelationId id, UserRelationType type);
 
     /** Deletes a specific relation type between two users
      * (e.g. remove only FOLLOW, not BLOCK). */
     @Modifying
     @Query("DELETE FROM UserRelation ur WHERE ur.id = :id AND ur.type = :type")
-    int deleteByIdAndType(@Param("id") UserRelationId id, @Param("type") String type);
+    int deleteByIdAndType(@Param("id") UserRelationId id, @Param("type") UserRelationType type);
 
     /** Removes any relation in the reverse direction
      * used when blocking to clear reverse follows. */

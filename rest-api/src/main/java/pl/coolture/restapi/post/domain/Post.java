@@ -82,16 +82,19 @@ public class Post {
     private int commentsCount;
 
     /** OFFLINE | ONLINE */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String type;
+    private PostType type;
 
     /** ACTIVE | EDITED | DELETED */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String status;
+    private PostStatus status;
 
     /** PUBLIC | PRIVATE | FRIENDS */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String visibility;
+    private PostVisibility visibility;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

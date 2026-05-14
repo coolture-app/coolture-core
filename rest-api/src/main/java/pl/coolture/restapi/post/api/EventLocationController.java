@@ -15,6 +15,7 @@ import pl.coolture.restapi.post.application.EventLocationService;
 
 // TODO: @PreAuthorize("hasRole('ADMIN')")
 @RestController
+@PreAuthorize("hasRole('COOLTURE_ADMIN')")
 @RequestMapping("/event-locations/admin")
 @RequiredArgsConstructor
 public class EventLocationController {

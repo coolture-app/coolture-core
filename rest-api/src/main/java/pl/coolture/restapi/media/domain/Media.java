@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -39,8 +41,9 @@ public class Media {
     private String fileName;
 
     /** Maps to MediaPurpose enum values stored as strings. */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 64)
-    private String purpose;
+    private MediaPurpose purpose;
 
     @Column(nullable = false, length = 64)
     private String mimeType;
@@ -54,8 +57,9 @@ public class Media {
      * ATTACHED: linked to a post or active profile image
      * DELETED: removed from S3; record can be kept
      */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String status;
+    private MediaStatus status;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

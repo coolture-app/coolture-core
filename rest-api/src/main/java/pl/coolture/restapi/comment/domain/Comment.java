@@ -65,6 +65,7 @@ public class Comment {
     private Instant deletedAt;
 
     /** ACTIVE | DELETED */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String status;
+    private CommentStatus status;
 }

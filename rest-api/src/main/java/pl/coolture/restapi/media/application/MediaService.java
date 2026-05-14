@@ -18,6 +18,8 @@ import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitRequest;
 import pl.coolture.restapi.media.api.dto.MediaUploadInitResponse;
 import pl.coolture.restapi.media.domain.Media;
+import pl.coolture.restapi.media.domain.MediaPurpose;
+import pl.coolture.restapi.media.domain.MediaStatus;
 import pl.coolture.restapi.media.domain.MediaRepository;
 import pl.coolture.restapi.common.config.storage.PresignService;
 import pl.coolture.restapi.common.config.storage.S3Properties;
@@ -32,11 +34,6 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequ
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MediaService {
-
-    private static final String STATUS_PENDING  = "PENDING";
-    private static final String STATUS_UPLOADED = "UPLOADED";
-    private static final String STATUS_DELETED  = "DELETED";
-
     private final MediaRepository  mediaRepository;
     private final PresignService   presignService;
     private final S3Client         s3Client;
@@ -57,7 +54,7 @@ public class MediaService {
                 .purpose(request.purpose())
                 .mimeType(request.mimeType())
                 .sizeBytes(request.sizeBytes())
-                .status(STATUS_PENDING)
+                .status(MediaStatus.PENDING)
                 .createdAt(Instant.now())
                 .build();
 
@@ -86,14 +83,14 @@ public class MediaService {
     public MediaResourceDto completeUpload(UUID mediaId, UUID callerId, MediaCompleteRequest request) {
         Media media = findOwnedOrThrow(mediaId, callerId);
 
-        if (!STATUS_PENDING.equals(media.getStatus())) {
+        if (!MediaStatus.PENDING.equals(media.getStatus())) {
             throw new ConflictException("Media upload is already completed or invalid");
         }
 
         // TODO: optionally verify ETag against S3 HeadObject response
         //  to confirm the file was not corrupted in transit.
 
-        media.setStatus(STATUS_UPLOADED);
+        media.setStatus(MediaStatus.UPLOADED);
         return toDto(media);
     }
 
@@ -101,7 +98,7 @@ public class MediaService {
         Media media = mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Media", mediaId));
 
-        if (STATUS_DELETED.equals(media.getStatus())) {
+        if (MediaStatus.DELETED.equals(media.getStatus())) {
             throw new ResourceNotFoundException("Media", mediaId);
         }
 
@@ -112,7 +109,7 @@ public class MediaService {
     public void delete(UUID mediaId, UUID callerId) {
         Media media = findOwnedOrThrow(mediaId, callerId);
 
-        if (STATUS_DELETED.equals(media.getStatus())) {
+        if (MediaStatus.DELETED.equals(media.getStatus())) {
             throw new ConflictException("Media is already deleted");
         }
         if ("ATTACHED".equals(media.getStatus())) {
@@ -124,7 +121,7 @@ public class MediaService {
                 .key(media.getObjectKey())
                 .build());
 
-        media.setStatus(STATUS_DELETED);
+        media.setStatus(MediaStatus.DELETED);
         media.setDeletedAt(Instant.now());
     }
 
@@ -160,7 +157,7 @@ public class MediaService {
      * Used by the /media/uploads/direct convenience endpoint.
      */
     @Transactional
-    public MediaResourceDto directUpload(UUID ownerId, String purpose, MultipartFile file) throws IOException {
+    public MediaResourceDto directUpload(UUID ownerId, MediaPurpose purpose, MultipartFile file) throws IOException {
         String ext = extractExtension(
                 Optional.ofNullable(file.getOriginalFilename()).orElse("file.bin"));
         String objectKey = "%s/%s/%s.%s".formatted(purpose, ownerId, UUID.randomUUID(), ext);
@@ -184,7 +181,7 @@ public class MediaService {
                 .purpose(purpose)
                 .mimeType(mimeType)
                 .sizeBytes(file.getSize())
-                .status(STATUS_UPLOADED)
+                .status(MediaStatus.UPLOADED)
                 .createdAt(Instant.now())
                 .build();
 

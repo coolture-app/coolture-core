@@ -17,8 +17,9 @@ public class PostParticipation {
     private PostParticipationId id;
 
     /** matches participation_type enum in DB schema. */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
-    private String type;
+    private ParticipationType type;
 
     @Column(nullable = false)
     private Instant createdAt;

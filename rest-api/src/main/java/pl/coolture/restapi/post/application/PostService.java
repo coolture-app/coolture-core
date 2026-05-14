@@ -32,21 +32,19 @@ import pl.coolture.restapi.reaction.domain.ReactionType;
 import pl.coolture.restapi.user.application.UserAvatarService;
 import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.user.domain.UserRepository;
+import pl.coolture.restapi.post.domain.PostType;
+import pl.coolture.restapi.post.domain.PostStatus;
+import pl.coolture.restapi.post.domain.PostVisibility;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostService {
 
-  private static final String TYPE_ONLINE = "ONLINE";
-  private static final String TYPE_OFFLINE = "OFFLINE";
-  private static final String STATUS_ACTIVE = "ACTIVE";
-  private static final String STATUS_EDITED = "EDITED";
-  private static final String STATUS_DELETED = "DELETED";
-  private static final String VISIBILITY_PUBLIC = "PUBLIC";
 
-  private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("interested", "takes_part");
-  private static final Set<String> VALID_REACTION_TYPES      = Set.of("like", "dislike");
+
+  private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("INTRESTED", "TAKES_PART");
+  private static final Set<String> VALID_REACTION_TYPES      = Set.of("LIKE", "DISLIKE");
 
   private final PostRepository postRepository;
   private final UserRepository userRepository;
@@ -87,9 +85,9 @@ public class PostService {
             f.categoryId(),
             toNullableArray(f.tags()),
             f.authorId(),
-            f.status(),
+            f.status() != null ? f.status().name() : null,
             visibilityFilter,
-            f.type(),
+            f.type() != null ? f.type().name() : null,
             f.startsFrom(),
             f.startsTo(),
             f.latitude(),
@@ -162,8 +160,8 @@ public class PostService {
             .endsAt(req.endsAt())
             .tags(toNullableArray(req.tags()))
             .type(req.type())
-            .status(STATUS_ACTIVE)
-            .visibility(req.visibility() != null ? req.visibility() : VISIBILITY_PUBLIC)
+            .status(PostStatus.ACTIVE)
+            .visibility(req.visibility() != null ? req.visibility() : PostVisibility.PUBLIC)
             .createdAt(Instant.now())
             .media(new ArrayList<>())
             .build();
@@ -182,7 +180,7 @@ public class PostService {
     requireAuthor(post, callerId);
 
     // Resolve type + location (online events no location)
-    String newType = req.type() != null ? req.type() : post.getType();
+    PostType newType = req.type() != null ? req.type() : post.getType();
     boolean locationTouched = req.location() != null;
     EventLocationDto newLocDto =
         locationTouched ? req.location() : postMapper.toLocationDto(post.getLocation());
@@ -209,14 +207,14 @@ public class PostService {
     }
 
     if (locationTouched) {
-      if (TYPE_ONLINE.equals(newType)) {
+      if (PostType.ONLINE == newType) {
         post.setLocation(null);
       } else if (post.getLocation() == null) {
         post.setLocation(postMapper.toLocationEntity(req.location()));
       } else {
         postMapper.updateLocation(post.getLocation(), req.location());
       }
-    } else if (TYPE_ONLINE.equals(newType)) {
+    } else if (PostType.ONLINE == newType) {
       // Type switched to ONLINE: drop any existing location.
       post.setLocation(null);
     }
@@ -229,7 +227,7 @@ public class PostService {
       updateCoverFlag(post, req.coverMediaId());
     }
 
-    post.setStatus(STATUS_EDITED);
+    post.setStatus(PostStatus.EDITED);
     post.setLastModifiedAt(Instant.now());
     return postMapper.toDetail(
             post,
@@ -243,7 +241,7 @@ public class PostService {
 
     commentService.deleteAllForPost(postId);
 
-    post.setStatus(STATUS_DELETED);
+    post.setStatus(PostStatus.DELETED);
     post.setDeletedAt(Instant.now());
   }
 
@@ -272,7 +270,7 @@ public class PostService {
         postRepository
             .findById(postId)
             .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
-    if (STATUS_DELETED.equals(post.getStatus()) || post.getDeletedAt() != null) {
+    if (PostStatus.DELETED == post.getStatus() || post.getDeletedAt() != null) {
       throw new ResourceNotFoundException("Post", postId);
     }
     return post;
@@ -284,11 +282,11 @@ public class PostService {
     }
   }
 
-  private void validateTypeLocationInvariant(String type, EventLocationDto location) {
-    if (TYPE_OFFLINE.equals(type) && location == null) {
+  private void validateTypeLocationInvariant(PostType type, EventLocationDto location) {
+    if (PostType.OFFLINE == type && location == null) {
       throw new ForbiddenException("OFFLINE posts require a location");
     }
-    if (TYPE_ONLINE.equals(type) && location != null) {
+    if (PostType.ONLINE == type && location != null) {
       throw new ForbiddenException("ONLINE posts cannot have a location");
     }
   }
@@ -395,12 +393,12 @@ public class PostService {
     return (s == null || s.isBlank()) ? null : s;
   }
 
-  private String getVisibilityFilter(String explicitFilter, UUID callerId) {
+  private String getVisibilityFilter(PostVisibility explicitFilter, UUID callerId) {
     if (explicitFilter != null) {
-      return explicitFilter;
+      return explicitFilter.name();
     }
     if (callerId == null) {
-      return VISIBILITY_PUBLIC;
+      return PostVisibility.PUBLIC.name();
     }
     return null;
   }

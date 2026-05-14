@@ -24,6 +24,7 @@ import pl.coolture.restapi.post.api.PostMapper;
 import pl.coolture.restapi.post.api.dto.PostCardDto;
 import pl.coolture.restapi.post.domain.Post;
 import pl.coolture.restapi.post.domain.PostRepository;
+import pl.coolture.restapi.post.domain.PostVisibility;
 import pl.coolture.restapi.reaction.application.ReactionService;
 import pl.coolture.restapi.reaction.domain.ReactionType;
 import pl.coolture.restapi.user.application.UserAvatarService;
@@ -126,7 +127,7 @@ class PostServiceGetFeedTest {
 
         @Test
         void nullCallerId_withParticipationTypes_throwsUnauthenticated() {
-            var filters = filtersWithParticipation(List.of("interested"));
+            var filters = filtersWithParticipation(List.of("INTERESTED"));
 
             assertThatThrownBy(() -> postService.getFeed(null, filters, null, 10))
                     .isInstanceOf(UnauthenticatedUserException.class);
@@ -147,7 +148,7 @@ class PostServiceGetFeedTest {
 
         @Test
         void mixedValidAndUnknownTypes_throwsBadRequestListingOnlyUnknownOnes() {
-            var filters = filtersWithParticipation(List.of("interested", "bad_type"));
+            var filters = filtersWithParticipation(List.of("INTERESTED", "bad_type"));
 
             assertThatThrownBy(() -> postService.getFeed(UUID.randomUUID(), filters, null, 10))
                     .isInstanceOf(BadRequestException.class)
@@ -180,7 +181,7 @@ class PostServiceGetFeedTest {
         @Test
         void allValidParticipationTypes_andAuthenticatedCaller_proceedsWithoutException() {
             UUID callerId = UUID.randomUUID();
-            var filters = filtersWithParticipation(List.of("interested", "takes_part"));
+            var filters = filtersWithParticipation(List.of("INTERESTED", "TAKES_PART"));
 
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(), any(),
@@ -197,7 +198,7 @@ class PostServiceGetFeedTest {
 
         @Test
         void nullCallerId_withReactionType_throwsUnauthenticated() {
-            var filters = filtersWithReaction("like");
+            var filters = filtersWithReaction("LIKE");
 
             assertThatThrownBy(() -> postService.getFeed(null, filters, null, 10))
                     .isInstanceOf(UnauthenticatedUserException.class);
@@ -236,7 +237,7 @@ class PostServiceGetFeedTest {
                     any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
-            assertThatCode(() -> postService.getFeed(callerId, filtersWithReaction("like"), null, 10))
+            assertThatCode(() -> postService.getFeed(callerId, filtersWithReaction("LIKE"), null, 10))
                     .doesNotThrowAnyException();
         }
     }
@@ -455,12 +456,12 @@ class PostServiceGetFeedTest {
                     any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
-            postService.getFeed(callerId, filtersWithReaction("dislike"), null, 10);
+            postService.getFeed(callerId, filtersWithReaction("DISLIKE"), null, 10);
 
             verify(postRepository).findFeed(
                     any(), any(), any(), any(), any(), any(), any(),
                     any(), any(), any(), any(), any(), any(),
-                    eq("dislike"),  // reactionType
+                    eq("DISLIKE"),  // reactionType
                     any(), any(), any(), any(), anyInt());
         }
     }
@@ -625,7 +626,7 @@ class PostServiceGetFeedTest {
                     any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), anyInt()))
                     .thenReturn(List.of());
 
-            var filters = PostFeedFilters.builder().visibility("FRIENDS").build();
+            var filters = PostFeedFilters.builder().visibility(PostVisibility.FRIENDS).build();
             postService.getFeed(null, filters, null, 10);
 
             verify(postRepository).findFeed(
@@ -675,7 +676,7 @@ class PostServiceGetFeedTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"recent", "popular", "upcoming"})
+        @ValueSource(strings = {"RECENT", "POPULAR", "UPCOMING"})
         void validSortBy_isPassedVerbatimToRepo(String sortBy) {
             stubNoCursor();
             when(postRepository.findFeed(any(), any(), any(), any(), any(), any(), any(),

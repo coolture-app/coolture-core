@@ -280,12 +280,6 @@ Table comments {
     '''
 }
 
-Enum reaction_type {
-    like
-    dislike
-    // later can add EMOJI REACTIONS!
-}
-
 Table post_reactions {
     user_id uuid [
         ref: > users.id
@@ -293,8 +287,9 @@ Table post_reactions {
     post_id uuid [
         ref: > posts.id
     ]
-    type reaction_type [
+    type varchar(32) [
         not null,
+        check: `type in ('LIKE', 'DISLIKE')`,
         note: 'user can only use one reaction for particular post'
     ]
     created_at timestamptz [
@@ -312,12 +307,6 @@ Table post_reactions {
     '''
 }
 
-Enum participation_type {
-    interested
-    takes_part
-    // later can add more
-}
-
 Table post_participations {
     user_id uuid [
         ref: > users.id
@@ -325,8 +314,9 @@ Table post_participations {
     post_id uuid [
         ref: > posts.id
     ]
-    type participation_type [
+    type varchar(32) [
         not null,
+        check: `type in ('INTERESTED', 'TAKES_PART')`,
         note: 'user can only declare one participation type for particular post'
     ]
     created_at timestamptz [
@@ -419,20 +409,6 @@ Table event_categories {
 }
 
 // Media related tables
-Enum media_purpose {
-    profile_image
-    profile_image_thumbnail
-    event_cover
-    event_media
-}
-
-Enum media_status {
-    PENDING 
-    UPLOADED
-    ATTACHED
-    DELETED
-}
-
 Table media {
     id uuid [
         pk,
@@ -455,8 +431,9 @@ Table media {
         not null,
         note: 'name of the file that was sent'
     ]
-    purpose media_purpose [
-        not null
+    purpose varchar(32) [
+        not null,
+        check: `purpose in ('PROFILE_IMAGE', 'PROFILE_IMAGE_THUMBNAIL', 'EVENT_COVER', 'EVENT_MEDIA')`,
     ]
     mime_type varchar(64) [
         not null
@@ -471,8 +448,9 @@ Table media {
     deleted_at timestamptz [
         null
     ]
-    status media_status [
+    status varchar(32) [
         not null,
+        check: `status in ('PENDING', 'UPLOADED', 'ATTACHED', 'DELETED')`,
         note: 'describes current media state (for soft deletion/periodic deletion)'
     ]
 

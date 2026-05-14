@@ -24,6 +24,6 @@ public interface PostReactionRepository extends JpaRepository<PostReaction, Post
         return findByUserIdAndPostIds(userId, postIds).stream()
                 .collect(Collectors.toMap(
                         r -> r.getId().getPostId(),
-                        r -> ReactionType.from(r.getType())));
+                        r -> r.getType()));
     }
 }
