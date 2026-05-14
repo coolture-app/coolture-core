@@ -69,10 +69,10 @@ CREATE TABLE media
         NOT NULL
         CONSTRAINT ck_media_purpose CHECK (
             purpose IN (
-                        'profile_image',
-                        'profile_image_thumbnail',
-                        'event_cover',
-                        'event_media'
+                        'PROFILE_IMAGE',
+                        'PROFILE_IMAGE_THUMBNAIL',
+                        'EVENT_COVER',
+                        'EVENT_MEDIA'
                 )
             ),
     mime_type VARCHAR(64)
@@ -274,8 +274,8 @@ CREATE TABLE post_reactions
         NOT NULL
         CONSTRAINT ck_post_reactions_type CHECK (
             type IN (
-                     'like',
-                     'dislike'
+                     'LIKE',
+                     'DISLIKE'
                 )
             ),
     created_at TIMESTAMPTZ
@@ -296,8 +296,8 @@ CREATE TABLE post_participations
         NOT NULL
         CONSTRAINT ck_post_participations_type CHECK (
             type IN (
-                     'interested',
-                     'takes_part'
+                     'INTERESTED',
+                     'TAKES_PART'
                 )
             ),
     created_at TIMESTAMPTZ

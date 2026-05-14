@@ -23,10 +23,6 @@ import pl.coolture.restapi.user.domain.UserRepository;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RelationService {
-
-    private static final UserRelationType FOLLOW = UserRelationType.FOLLOW;
-    private static final UserRelationType BLOCK  = UserRelationType.BLOCK;
-
     private final UserRelationRepository relationRepository;
     private final UserRepository         userRepository;
     private final UserMapper             userMapper;
@@ -64,21 +60,21 @@ public class RelationService {
 
     @Transactional
     public void follow(UUID callerId, UUID targetId) {
-        requireNotSelf(callerId, targetId, "follow");
+        requireNotSelf(callerId, targetId, "FOLLOW");
         requireUserExists(targetId);
 
         var id = new UserRelationId(callerId, targetId);
-        if (relationRepository.existsByIdAndType(id, FOLLOW)) {
+        if (relationRepository.existsByIdAndType(id, UserRelationType.FOLLOW)) {
             throw new ConflictException("Already following this user");
         }
-        save(id, FOLLOW);
+        save(id, UserRelationType.FOLLOW);
     }
 
     @Transactional
     public void unfollow(UUID callerId, UUID targetId) {
         requireUserExists(targetId);
         var id = new UserRelationId(callerId, targetId);
-        int deleted = relationRepository.deleteByIdAndType(id, FOLLOW);
+        int deleted = relationRepository.deleteByIdAndType(id, UserRelationType.FOLLOW);
         if (deleted == 0) {
             throw new ResourceNotFoundException("Follow relation", targetId);
         }
@@ -86,11 +82,11 @@ public class RelationService {
 
     @Transactional
     public void block(UUID callerId, UUID targetId) {
-        requireNotSelf(callerId, targetId, "block");
+        requireNotSelf(callerId, targetId, "BLOCK");
         requireUserExists(targetId);
 
         var id = new UserRelationId(callerId, targetId);
-        if (relationRepository.existsByIdAndType(id, BLOCK)) {
+        if (relationRepository.existsByIdAndType(id, UserRelationType.BLOCK)) {
             throw new ConflictException("Already blocking this user");
         }
 
@@ -99,25 +95,25 @@ public class RelationService {
         // Also remove the reverse FOLLOW (target was following caller)
         relationRepository.deleteAny(targetId, callerId);
 
-        save(id, BLOCK);
+        save(id, UserRelationType.BLOCK);
     }
 
     @Transactional
     public void unblock(UUID callerId, UUID targetId) {
         requireUserExists(targetId);
         var id = new UserRelationId(callerId, targetId);
-        int deleted = relationRepository.deleteByIdAndType(id, BLOCK);
+        int deleted = relationRepository.deleteByIdAndType(id, UserRelationType.BLOCK);
         if (deleted == 0) {
             throw new ResourceNotFoundException("Block relation", targetId);
         }
     }
 
     public boolean isFollowing(UUID sourceId, UUID targetId) {
-        return relationRepository.existsByIdAndType(new UserRelationId(sourceId, targetId), FOLLOW);
+        return relationRepository.existsByIdAndType(new UserRelationId(sourceId, targetId), UserRelationType.FOLLOW);
     }
 
     public boolean isBlocked(UUID sourceId, UUID targetId) {
-        return relationRepository.existsByIdAndType(new UserRelationId(sourceId, targetId), BLOCK);
+        return relationRepository.existsByIdAndType(new UserRelationId(sourceId, targetId), UserRelationType.BLOCK);
     }
 
     private void save(UserRelationId id, UserRelationType type) {

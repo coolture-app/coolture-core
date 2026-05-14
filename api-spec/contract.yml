@@ -918,13 +918,13 @@ components:
       in: query
       description: |
         Sort order for the feed.
-        - `recent` (default): newest first
-        - `popular`: highest positive reactions first
-        - `upcoming`: soonest starting event first
+        - `RECENT` (default): newest first
+        - `POPULAR`: highest positive reactions first
+        - `UPCOMING`: soonest starting event first
       schema:
         type: string
-        enum: [ recent, popular, upcoming ]
-        default: recent
+        enum: [ RECENT, POPULAR, UPCOMING ]
+        default: RECENT
     LimitParam:
       name: limit
       in: query
@@ -1090,18 +1090,18 @@ components:
         type: array
         items:
           type: string
-          enum: [interested, takes_part]
+          enum: [INTERESTED, TAKES_PART]
     ReactionTypeParam:
       name: reactionType
       in: query
       description: |
         Filter posts by the authenticated caller's reaction.
-        Allowed values: `like`, `dislike`.
+        Allowed values: `LIKE`, `DISLIKE`.
         Single value only.
         Requires authentication.
       schema:
         type: string
-        enum: [like, dislike]
+        enum: [LIKE, DISLIKE]
 
   schemas:
     # Generic
@@ -1171,10 +1171,10 @@ components:
     MediaPurpose:
       type: string
       enum:
-        - profile_image
-        - profile_image_thumbnail
-        - event_cover
-        - event_media
+        - PROFILE_IMAGE
+        - PROFILE_IMAGE_THUMBNAIL
+        - EVENT_COVER
+        - EVENT_MEDIA
 
     MediaStatus:
       type: string
@@ -1417,10 +1417,10 @@ components:
       enum: [PUBLIC, PRIVATE, FRIENDS]
     ReactionType:
       type: string
-      enum: [like, dislike]
+      enum: [LIKE, DISLIKE]
     ParticipationType:
       type: string
-      enum: [interested, takes_part]
+      enum: [INTERESTED, TAKES_PART]
 
     PostMedia:
       type: object

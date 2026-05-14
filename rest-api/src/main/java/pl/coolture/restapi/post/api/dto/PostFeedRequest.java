@@ -78,7 +78,7 @@ public class PostFeedRequest {
      * Filter posts in respect to caller's reaction
      * Require auth - without valid JWT result in HTTP 401
      */
-    @Pattern(regexp = "like|dislike")
+    @Pattern(regexp = "LIKE|DISLIKE")
     private String reactionType;
 
     private String cursor;
@@ -86,7 +86,7 @@ public class PostFeedRequest {
     @Min(1) @Max(100)
     private int limit = 20;
 
-    @Pattern(regexp = "recent|popular|upcoming")
+    @Pattern(regexp = "RECENT|POPULAR|UPCOMING")
     private String sortBy;
 
     /**

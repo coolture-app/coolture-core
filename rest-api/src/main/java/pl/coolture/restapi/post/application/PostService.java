@@ -43,8 +43,8 @@ public class PostService {
 
 
 
-  private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("interested", "takes_part");
-  private static final Set<String> VALID_REACTION_TYPES      = Set.of("like", "dislike");
+  private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("INTRESTED", "TAKES_PART");
+  private static final Set<String> VALID_REACTION_TYPES      = Set.of("LIKE", "DISLIKE");
 
   private final PostRepository postRepository;
   private final UserRepository userRepository;

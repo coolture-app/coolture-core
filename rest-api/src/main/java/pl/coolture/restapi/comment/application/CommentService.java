@@ -31,9 +31,6 @@
     @RequiredArgsConstructor
     @Transactional(readOnly = true)
     public class CommentService {
-
-        private static final CommentStatus STATUS_ACTIVE  = CommentStatus.ACTIVE;
-        private static final CommentStatus STATUS_DELETED = CommentStatus.DELETED;
         private static final pl.coolture.restapi.post.domain.PostStatus POST_DELETED   = pl.coolture.restapi.post.domain.PostStatus.DELETED;
 
         /** Contract: thread depth is capped at 2 (root=0, reply=1, reply-to-reply=2). */
@@ -114,7 +111,7 @@
                     .ancestorIds(buildAncestors(parent))
                     .content(request.content())
                     .repliesCount(0)
-                    .status(STATUS_ACTIVE)
+                    .status(CommentStatus.ACTIVE)
                     .createdAt(Instant.now())
                     .build();
 
@@ -153,7 +150,7 @@
             Comment comment = findActiveOrThrow(commentId);
             requireAuthor(comment, callerId);
 
-            comment.setStatus(STATUS_DELETED);
+            comment.setStatus(CommentStatus.DELETED);
             comment.setDeletedAt(Instant.now());
             comment.setContent("");
 
@@ -203,7 +200,7 @@
             Comment c = commentRepository.findById(commentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Comment", commentId));
 
-            if (STATUS_DELETED.equals(c.getStatus()) || c.getDeletedAt() != null) {
+            if (CommentStatus.DELETED.equals(c.getStatus()) || c.getDeletedAt() != null) {
                 throw new ResourceNotFoundException("Comment", commentId);
             }
             return c;

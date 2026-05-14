@@ -166,7 +166,7 @@ class MediaControllerTest {
     private static String validInitBody() {
         return """
                 {
-                  "purpose": "event_media",
+                  "purpose": "EVENT_MEDIA",
                   "mimeType": "image/jpeg",
                   "sizeBytes": 204800,
                   "fileName": "photo.jpg"
