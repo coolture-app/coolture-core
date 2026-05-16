@@ -9,7 +9,6 @@ import pl.coolture.restapi.post.domain.PostType;
 import pl.coolture.restapi.post.domain.PostVisibility;
 
 public record PostCreateRequest(
-        @NotNull
         UUID categoryId,
 
         @NotBlank

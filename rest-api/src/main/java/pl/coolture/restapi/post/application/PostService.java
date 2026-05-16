@@ -144,9 +144,12 @@ public class PostService {
 
     User author = userRepository.getReferenceById(callerId);
     EventCategory cat =
-        categoryRepository
-            .findById(req.categoryId())
-            .orElseThrow(() -> new ResourceNotFoundException("EventCategory", req.categoryId()));
+        req.categoryId() == null
+            ? null
+            : categoryRepository
+                .findById(req.categoryId())
+                .orElseThrow(
+                    () -> new ResourceNotFoundException("EventCategory", req.categoryId()));
 
     Post post =
         Post.builder()

@@ -37,6 +37,7 @@ I_KEYCLOAK_HOST  := keycloak
 I_GARAGE_HOST    := s3garage
 I_GARAGE_UI_HOST := s3garage-ui
 I_POSTGRES_HOST  := postgres
+I_SCRAPPER_HOST  := scrapper
 
 # Internal (Docker) ports
 # These are the ports on which services listen on inside the Docker network
@@ -65,6 +66,34 @@ H_GATEWAY_PORT       ?= 8080
 H_REST_API_PORT      ?= 8081
 H_KEYCLOAK_PORT      := 8180
 H_KEYCLOAK_MGMT_PORT := 8181
+
+# Keycloak bot service-account secret.
+# Substituted into keycloak/import/realm.json at realm import time AND used by
+# the scrapper for client_credentials grant — both sides must see the same value.
+# Default below is a static dev secret; override from environment in deploy
+# (e.g. GitHub Actions: pass `secrets.KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET` via
+# the workflow's `env:` block before calling `make env`).
+KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET ?= HgT7kLmNpQrSvWxYzA3dBcEfJuK1o8i2
+
+# Scrapper
+SCRAPPER_TIMEZONE := Europe/Warsaw
+SCRAPPER_INGEST_ENABLED := true
+SCRAPPER_WRITE_DUMP := false
+SCRAPPER_OUTPUT_DIR := /tmp/scrapper
+SCRAPPER_API_BASE_URL := http://rest-api:8081/api
+SCRAPPER_KEYCLOAK_BASE_URL := http://keycloak:8180
+SCRAPPER_KEYCLOAK_REALM := coolture-dev
+SCRAPPER_KEYCLOAK_GRANT_TYPE := client_credentials
+SCRAPPER_KEYCLOAK_CLIENT_ID := coolture-bot
+SCRAPPER_KEYCLOAK_CLIENT_SECRET := $(KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET)
+SCRAPPER_KEYCLOAK_USERNAME := coolture_admin
+SCRAPPER_KEYCLOAK_PASSWORD := admin
+SCRAPPER_EVENT_CATEGORY_NAME :=
+SCRAPPER_FALLBACK_CATEGORY_NAME := other
+SCRAPPER_RUN_ON_START := true
+SCRAPPER_SCHEDULE_WINDOW_START_HOUR := 6
+SCRAPPER_SCHEDULE_WINDOW_END_HOUR := 22
+SCRAPPER_SCHEDULE_SALT := coolture-scrapper
 
 # CONNECT variables (environment specific used in developed services)
 # CONNECT_* tell Spring where to reach each backing service.
@@ -149,6 +178,7 @@ env:
 	echo "GARAGE_API_INTERNAL_HOSTNAME=$(I_GARAGE_HOST)"; \
 	echo "GARAGE_UI_INTERNAL_HOSTNAME=$(I_GARAGE_UI_HOST)"; \
 	echo "POSTGRES_INTERNAL_HOSTNAME=$(I_POSTGRES_HOST)"; \
+	echo "SCRAPPER_INTERNAL_HOSTNAME=$(I_SCRAPPER_HOST)"; \
 	echo ""; \
 	echo "# HOST PORTS"; \
 	echo "GARAGE_API_HOST_PORT=$(H_GARAGE_API_PORT)"; \
@@ -188,8 +218,10 @@ env:
 	echo "KEYCLOAK_REALM=$(KEYCLOAK_REALM)"; \
 	echo "KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID=coolture-swagger"; \
 	echo "KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID=coolture-gateway"; \
+	echo "KEYCLOAK_COOLTURE_BOT_CLIENT_ID=coolture-bot"; \
 	echo "KEYCLOAK_COOLTURE_SWAGGER_CLIENT_SECRET=74in9eNuLAKHEIowc8LheU4CQv3pPx5x"; \
 	echo "KEYCLOAK_COOLTURE_GATEWAY_CLIENT_SECRET=YsiygIl2YKRzEyTW7UDnio05PpC8yQdJ"; \
+	echo "KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET=$(KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET)"; \
 	echo "KEYCLOAK_ADMIN=admin"; \
 	echo "KEYCLOAK_ADMIN_PASSWORD=admin"; \
 	echo "KEYCLOAK_TEST_USERS_PASSWORD=$(KEYCLOAK_TEST_USERS_PASSWORD)"; \
@@ -198,6 +230,28 @@ env:
 	echo "POSTGRES_DB=coolture_db"; \
 	echo "POSTGRES_USER=admin"; \
 	echo "POSTGRES_PASSWORD=admin"; \
+	echo ""; \
+	echo "# Scrapper"; \
+	echo "SCRAPPER_MODE=scheduler"; \
+	echo "SCRAPPER_TARGET_URL=https://www.trojmiasto.pl/imprezy/kalendarz-imprez/dni,30dni.html"; \
+	echo "SCRAPPER_TIMEZONE=$(SCRAPPER_TIMEZONE)"; \
+	echo "SCRAPPER_WRITE_DUMP=$(SCRAPPER_WRITE_DUMP)"; \
+	echo "SCRAPPER_OUTPUT_DIR=$(SCRAPPER_OUTPUT_DIR)"; \
+	echo "SCRAPPER_INGEST_ENABLED=$(SCRAPPER_INGEST_ENABLED)"; \
+	echo "SCRAPPER_API_BASE_URL=$(SCRAPPER_API_BASE_URL)"; \
+	echo "SCRAPPER_KEYCLOAK_BASE_URL=$(SCRAPPER_KEYCLOAK_BASE_URL)"; \
+	echo "SCRAPPER_KEYCLOAK_REALM=$(SCRAPPER_KEYCLOAK_REALM)"; \
+	echo "SCRAPPER_KEYCLOAK_GRANT_TYPE=$(SCRAPPER_KEYCLOAK_GRANT_TYPE)"; \
+	echo "SCRAPPER_KEYCLOAK_CLIENT_ID=$(SCRAPPER_KEYCLOAK_CLIENT_ID)"; \
+	echo "SCRAPPER_KEYCLOAK_CLIENT_SECRET=$(SCRAPPER_KEYCLOAK_CLIENT_SECRET)"; \
+	echo "SCRAPPER_KEYCLOAK_USERNAME=$(SCRAPPER_KEYCLOAK_USERNAME)"; \
+	echo "SCRAPPER_KEYCLOAK_PASSWORD=$(SCRAPPER_KEYCLOAK_PASSWORD)"; \
+	echo "SCRAPPER_EVENT_CATEGORY_NAME=$(SCRAPPER_EVENT_CATEGORY_NAME)"; \
+	echo "SCRAPPER_FALLBACK_CATEGORY_NAME=$(SCRAPPER_FALLBACK_CATEGORY_NAME)"; \
+	echo "SCRAPPER_RUN_ON_START=$(SCRAPPER_RUN_ON_START)"; \
+	echo "SCRAPPER_SCHEDULE_WINDOW_START_HOUR=$(SCRAPPER_SCHEDULE_WINDOW_START_HOUR)"; \
+	echo "SCRAPPER_SCHEDULE_WINDOW_END_HOUR=$(SCRAPPER_SCHEDULE_WINDOW_END_HOUR)"; \
+	echo "SCRAPPER_SCHEDULE_SALT=$(SCRAPPER_SCHEDULE_SALT)"; \
 	} > .env
 	@echo 	"[env] Generated .env  ( \
 ENV=$(ENV), \
