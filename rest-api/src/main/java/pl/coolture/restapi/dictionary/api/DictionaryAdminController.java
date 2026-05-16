@@ -18,7 +18,6 @@ import pl.coolture.restapi.dictionary.api.dto.EventCategoryDto;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeRequest;
 import pl.coolture.restapi.dictionary.api.dto.EventCategoryRequest;
 import pl.coolture.restapi.dictionary.application.DictionaryAdminService;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Admin only dictionary management endpoints
@@ -27,7 +26,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 @PreAuthorize("hasRole('COOLTURE_ADMIN')")
 @RequestMapping("/dicts/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('COOLTURE_ADMIN')")
 public class DictionaryAdminController {
 
     private final DictionaryAdminService adminService;

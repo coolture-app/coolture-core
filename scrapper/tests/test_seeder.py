@@ -151,6 +151,16 @@ class TestGetAccessToken(unittest.TestCase):
 class TestSeedOrchestration(unittest.TestCase):
     """End-to-end test of seed() with everything below it mocked."""
 
+    @patch.dict(os.environ, {"SCRAPPER_INGEST_ENABLED": "false"}, clear=False)
+    @patch("seeder._wait_for_dependencies")
+    @patch("seeder._get_access_token")
+    def test_skips_when_ingest_disabled(self, mock_token, mock_wait):
+        result = seeder.seed()
+        self.assertEqual(result, {"codes_added": 0, "skipped": True})
+        mock_wait.assert_not_called()
+        mock_token.assert_not_called()
+
+    @patch.dict(os.environ, {"SCRAPPER_INGEST_ENABLED": "true"}, clear=False)
     @patch("seeder._wait_for_dependencies")
     @patch("seeder._get_access_token", return_value="tok")
     @patch("seeder.seed_country_codes", return_value=5)
@@ -160,6 +170,7 @@ class TestSeedOrchestration(unittest.TestCase):
         mock_wait.assert_called_once()
         mock_token.assert_called_once()
 
+    @patch.dict(os.environ, {"SCRAPPER_INGEST_ENABLED": "true"}, clear=False)
     @patch("seeder._wait_for_dependencies")
     @patch("seeder._get_access_token", return_value="tok")
     @patch("seeder.seed_country_codes", return_value=0)

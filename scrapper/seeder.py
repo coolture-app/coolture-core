@@ -38,6 +38,10 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
+def _ingest_enabled() -> bool:
+    return os.getenv("SCRAPPER_INGEST_ENABLED", "true").lower() == "true"
+
+
 def _wait_for_service(url: str, label: str, max_wait_s: int = 300, interval: int = 10) -> None:
     deadline = time.time() + max_wait_s
     log.info("Waiting for %s at %s", label, url)
@@ -142,6 +146,10 @@ def _wait_for_dependencies(api_base_url: str) -> None:
 
 
 def seed() -> dict:
+    if not _ingest_enabled():
+        log.info("Seed skipped because SCRAPPER_INGEST_ENABLED=false")
+        return {"codes_added": 0, "skipped": True}
+
     api_base_url = os.getenv("SCRAPPER_API_BASE_URL", "http://rest-api:8081/api").rstrip("/")
 
     _wait_for_dependencies(api_base_url)

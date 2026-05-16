@@ -41,10 +41,10 @@ import pl.coolture.restapi.post.domain.PostVisibility;
 @Transactional(readOnly = true)
 public class PostService {
 
-
-
-  private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("INTRESTED", "TAKES_PART");
-  private static final Set<String> VALID_REACTION_TYPES      = Set.of("LIKE", "DISLIKE");
+  private static final List<String> VALID_PARTICIPATION_TYPES =
+      Arrays.stream(ParticipationType.values()).map(ParticipationType::getValue).toList();
+  private static final List<String> VALID_REACTION_TYPES =
+      Arrays.stream(ReactionType.values()).map(ReactionType::getValue).toList();
 
   private final PostRepository postRepository;
   private final UserRepository userRepository;

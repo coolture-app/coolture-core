@@ -64,6 +64,16 @@ def _parse_date_from_label(label: str) -> date | None:
         return None
 
 
+def _parse_date_from_iso(value: str | None) -> date | None:
+    cleaned = _clean_text(value)
+    if not cleaned:
+        return None
+    try:
+        return date.fromisoformat(cleaned[:10])
+    except ValueError:
+        return None
+
+
 def _parse_datetime_from_label(label: str) -> datetime | None:
     cleaned = _clean_text(label)
     if not cleaned:
@@ -79,6 +89,20 @@ def _parse_datetime_from_label(label: str) -> datetime | None:
             "PREFER_DATES_FROM": "future",
         },
     )
+
+
+def _parse_time_from_label(label: str) -> dt_time | None:
+    cleaned = _clean_text(label)
+    match = re.search(r"godz\.\s*(\d{1,2})[:.](\d{2})", cleaned, flags=re.IGNORECASE)
+    if not match:
+        return None
+
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    try:
+        return dt_time(hour=hour, minute=minute)
+    except ValueError:
+        return None
 
 
 def _truncate(value: str, max_len: int) -> str:
@@ -118,19 +142,30 @@ def _iso_utc(dt: datetime) -> str:
 
 
 def _build_post_payload(event: dict, category_id: str, now: datetime) -> dict | None:
-    event_dt = _parse_datetime_from_label(event.get("date_label", ""))
-    if event_dt is None:
-        event_day = _parse_date_from_label(event.get("date_label", ""))
-        if event_day is None:
-            return None
+    event_day = _parse_date_from_iso(event.get("event_date"))
+    if event_day is not None:
+        event_time = _parse_time_from_label(event.get("date_label", "")) or dt_time(hour=12)
         event_dt = datetime.combine(
             event_day,
-            dt_time(hour=12, minute=0),
+            event_time,
             tzinfo=ZoneInfo(os.getenv("SCRAPPER_TIMEZONE", "Europe/Warsaw")),
         )
+    else:
+        event_dt = _parse_datetime_from_label(event.get("date_label", ""))
+        if event_dt is None:
+            event_day = _parse_date_from_label(event.get("date_label", ""))
+            if event_day is None:
+                return None
+            event_dt = datetime.combine(
+                event_day,
+                dt_time(hour=12, minute=0),
+                tzinfo=ZoneInfo(os.getenv("SCRAPPER_TIMEZONE", "Europe/Warsaw")),
+            )
 
     if event_dt <= now:
         event_day = _parse_date_from_label(event.get("date_label", ""))
+        if event_day is None:
+            event_day = _parse_date_from_iso(event.get("event_date"))
         if event_day == now.date():
             # Same-day event whose listed time has passed — schedule near-future so @Future passes.
             event_dt = now + timedelta(minutes=5)
@@ -242,10 +277,11 @@ def _get_access_token() -> str:
     return token
 
 
-def _resolve_category_id(api_base_url: str) -> str:
+def _resolve_category_id(api_base_url: str, token: str | None = None) -> str:
     """Returns the UUID of the target event category, creating the fallback one if needed.
 
-    The GET and POST on /dicts/** are public (no auth required).
+    The GET on /dicts/** is public. The fallback POST uses auth when provided
+    because /dicts/admin/** is intentionally protected.
     """
     preferred_name = os.getenv("SCRAPPER_EVENT_CATEGORY_NAME", "").strip().lower()
     fallback_name = os.getenv("SCRAPPER_FALLBACK_CATEGORY_NAME", "other")
@@ -269,10 +305,13 @@ def _resolve_category_id(api_base_url: str) -> str:
         log.info("Using first available category '%s' (id=%s)", categories[0]["name"], categories[0]["id"])
         return categories[0]["id"]
 
-    # No usable category — create the fallback via admin endpoint (/dicts/** is permitAll).
+    # No usable category — create the fallback via the protected admin endpoint.
     create_resp = requests.post(
         f"{api_base_url}/dicts/admin/event-categories",
-        headers={"Content-Type": "application/json"},
+        headers={
+            **({"Authorization": f"Bearer {token}"} if token else {}),
+            "Content-Type": "application/json",
+        },
         data=json.dumps({"name": fallback_name}),
         timeout=20,
     )
@@ -332,7 +371,7 @@ def _ingest_today_events(events: list[dict], today_iso: str, now: datetime) -> d
     api_base_url = os.getenv("SCRAPPER_API_BASE_URL", "http://rest-api:8081/api").rstrip("/")
 
     token = _get_access_token()
-    category_id = _resolve_category_id(api_base_url)
+    category_id = _resolve_category_id(api_base_url, token)
     existing_keys = _list_existing_post_keys(api_base_url, token, today_iso)
 
     inserted = 0
@@ -412,21 +451,25 @@ def parse_event(html_content: str) -> dict:
     soup = BeautifulSoup(html_content, "html.parser")
 
     name_el = soup.select_one(".event__item__title")
-    price_el = soup.select_one(".event__price__info")
+    price_el = soup.select_one(".event__price__info, .event__price__free")
     date_el = soup.select_one(".event__item__date")
-    place_el = soup.select_one(".event__item__location__place")
-    link_el = soup.select_one("a[href]")
+    location_el = soup.select_one(".event__item__location")
+    link_el = soup.select_one(".event__item__title[href]")
 
-    raw_date = _clean_text(date_el.get_text(strip=True) if date_el else "")
-    parsed_date = _parse_date_from_label(raw_date)
+    raw_date = _clean_text(date_el.get_text(" ", strip=True) if date_el else "")
+    date_content = _clean_text(date_el.get("content") if date_el else "")
+    parsed_date = _parse_date_from_iso(date_content) or _parse_date_from_label(raw_date)
+    date_label = _clean_text(f"{date_content} {raw_date}") or "No date"
     href = link_el.get("href", "") if link_el else ""
 
     return {
         "name": _clean_text(name_el.get_text(strip=True) if name_el else "Unknown"),
-        "date_label": raw_date or "No date",
+        "date_label": date_label,
         "event_date": parsed_date.isoformat() if parsed_date else None,
         "price": _clean_text(price_el.get_text(strip=True) if price_el else "Check website"),
-        "where": _clean_text(place_el.get_text(strip=True) if place_el else "No location"),
+        "where": _clean_text(
+            location_el.get_text(" ", strip=True) if location_el else "No location"
+        ),
         "source_url": (
             href
             if href.startswith("http")
