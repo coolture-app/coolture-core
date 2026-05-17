@@ -40,6 +40,9 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
+embedding:
+  vector-dim: ${EMBEDDING_VECTOR_DIM:1536}
+
 storage:
   s3:
     internal-endpoint: http://${GARAGE_API_CONNECT_HOSTNAME:localhost}:${GARAGE_API_CONNECT_PORT:3900}

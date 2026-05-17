@@ -23,6 +23,9 @@ KEYCLOAK_DB_USER ?= keycloak
 KEYCLOAK_DB_PASSWORD ?= keycloak
 KEYCLOAK_DB_NAME ?= keycloak
 
+# Embedding
+EMBEDDING_VECTOR_DIM ?= 1536
+
 # Keycloak Realms
 KEYCLOAK_REALM := coolture-dev
 KEYCLOAK_TEST_USERS_PASSWORD := admin # TODO: set it to GH secret later
@@ -198,6 +201,9 @@ env:
 	echo "POSTGRES_DB=coolture_db"; \
 	echo "POSTGRES_USER=admin"; \
 	echo "POSTGRES_PASSWORD=admin"; \
+	echo ""; \
+	echo "# Embedding"; \
+	echo "EMBEDDING_VECTOR_DIM=$(EMBEDDING_VECTOR_DIM)"; \
 	} > .env
 	@echo 	"[env] Generated .env  ( \
 ENV=$(ENV), \
