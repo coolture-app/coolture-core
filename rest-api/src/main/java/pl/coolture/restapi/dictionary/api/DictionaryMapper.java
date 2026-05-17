@@ -4,19 +4,13 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import pl.coolture.restapi.common.mapper.BaseMapperConfig;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeDto;
-import pl.coolture.restapi.dictionary.api.dto.EventCategoryDto;
 import pl.coolture.restapi.dictionary.domain.CountryCode;
-import pl.coolture.restapi.dictionary.domain.EventCategory;
 
 /**
  * Maps dictionary entities to their API DTOs
  */
 @Mapper(config = BaseMapperConfig.class)
 public interface DictionaryMapper {
-
-    EventCategoryDto toDto(EventCategory category);
-
-    List<EventCategoryDto> toCategoryDtoList(List<EventCategory> categories);
 
     CountryCodeDto toDto(CountryCode countryCode);
 

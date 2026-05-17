@@ -31,7 +31,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
             AND (CAST(:q AS varchar) IS NULL
                  OR LOWER(p.title)       LIKE LOWER('%' || CAST(:q AS varchar) || '%')
                  OR LOWER(p.description) LIKE LOWER('%' || CAST(:q AS varchar) || '%'))
-            AND (CAST(:categoryId AS uuid)   IS NULL OR p.event_category_id = CAST(:categoryId AS uuid))
             AND (CAST(:tags AS varchar[])    IS NULL OR p.tags && CAST(:tags AS varchar[]))
             AND (CAST(:authorId AS uuid)     IS NULL OR p.author_id         = CAST(:authorId AS uuid))
             AND (CAST(:status AS varchar)    IS NULL OR p.status            = CAST(:status AS varchar))
@@ -75,7 +74,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
       nativeQuery = true)
   List<Post> findFeed(
       @Param("q") String q,
-      @Param("categoryId") UUID categoryId,
       @Param("tags") String[] tags,
       @Param("authorId") UUID authorId,
       @Param("status") String status,
