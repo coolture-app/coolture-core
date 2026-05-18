@@ -110,7 +110,7 @@ clients:
 
     serviceAccountsEnabled: true
     frontchannelLogout: true
-    fullScopeAllowed: false
+    fullScopeAllowed: true
     consentRequired: false
 
     protocol: openid-connect
