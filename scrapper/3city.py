@@ -174,12 +174,13 @@ def _build_post_payload(event: dict, category_id: str, now: datetime) -> dict | 
 
     title = _truncate(event.get("name", "Unknown event"), 32)
     description_parts = [
-        f"Source: {event.get('source_url') or 'https://www.trojmiasto.pl'}",
-        f"When: {event.get('date_label') or 'Unknown'}",
-        f"Where: {event.get('where') or 'Unknown'}",
-        f"Price: {event.get('price') or 'Unknown'}",
+        event.get("name", ""),
+        f"Kiedy: {event.get('date_label') or 'Nieznane'}",
+        f"Gdzie: {event.get('where') or 'Nieznane'}",
+        f"Cena: {event.get('price') or 'Nieznana'}",
+        f"Źródło: {event.get('source_url') or 'https://www.trojmiasto.pl'}",
     ]
-    description = _truncate(" | ".join(description_parts), 1024)
+    description = _truncate(" | ".join(filter(None, description_parts)), 1024)
     tags = [_truncate("trojmiasto", 32), _truncate("scrapper", 32)]
 
     return {
