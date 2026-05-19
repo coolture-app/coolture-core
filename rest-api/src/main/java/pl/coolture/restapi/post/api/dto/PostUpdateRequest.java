@@ -13,7 +13,7 @@ import pl.coolture.restapi.post.domain.PostVisibility;
  * All fields optional. Null do not change previous values
  */
 public record PostUpdateRequest(
-        @Size(max = 32)
+        @Size(max = 128)
         String title,
 
         @Size(max = 1024)

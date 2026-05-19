@@ -1430,7 +1430,7 @@ components:
           description: Required for OFFLINE events, null for ONLINE events.
         title:
           type: string
-          maxLength: 32
+          maxLength: 128
         description:
           type: string
           maxLength: 1024
@@ -1512,7 +1512,7 @@ components:
       properties:
         title:
           type: string
-          maxLength: 32
+          maxLength: 128
         description:
           type: string
           maxLength: 1024
@@ -1556,7 +1556,7 @@ components:
       properties:
         title:
           type: string
-          maxLength: 32
+          maxLength: 128
         description:
           type: string
           maxLength: 1024

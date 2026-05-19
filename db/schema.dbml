@@ -89,7 +89,7 @@ Table posts {
         ref: > event_locations.id,
         note: 'null when online event'
     ]
-    title varchar(32) [
+    title varchar(128) [
         not null,
         note: 'always fully visible short description of an event'
     ]

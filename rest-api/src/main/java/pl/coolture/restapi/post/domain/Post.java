@@ -47,7 +47,7 @@ public class Post {
     @JoinColumn(name = "event_location_id")
     private EventLocation location;
 
-    @Column(nullable = false, length = 32)
+    @Column(nullable = false, length = 128)
     private String title;
 
     @Column(nullable = false, length = 1024)
