@@ -177,7 +177,7 @@ def _build_post_payload(event: dict, category_id: str, now: datetime) -> dict | 
         event.get("name", ""),
         f"Kiedy: {event.get('date_label') or 'Nieznane'}",
         f"Gdzie: {event.get('where') or 'Nieznane'}",
-        f"Cena: {event.get('price') or 'Nieznana'}",
+        f"Cena: {event.get('price') if event.get('price') and event.get('price') != 'Check website' else 'Sprawdź stronę'}",
         f"Źródło: {event.get('source_url') or 'https://www.trojmiasto.pl'}",
     ]
     description = _truncate(" | ".join(filter(None, description_parts)), 1024)
