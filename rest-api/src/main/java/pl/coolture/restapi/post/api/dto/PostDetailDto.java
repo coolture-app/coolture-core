@@ -8,7 +8,6 @@ import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import pl.coolture.restapi.dictionary.api.dto.EventCategoryDto;
 import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.participation.domain.ParticipationType;
 import pl.coolture.restapi.post.domain.PostStatus;
@@ -26,7 +25,6 @@ import pl.coolture.restapi.user.api.dto.UserSummaryDto;
 public class PostDetailDto {
     private final UUID id;
     private final UserSummaryDto author;
-    private final EventCategoryDto category;
     private final EventLocationDto location;
     private final String title;
     private final String description;
