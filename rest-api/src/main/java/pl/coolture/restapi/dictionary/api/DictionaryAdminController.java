@@ -3,6 +3,7 @@ package pl.coolture.restapi.dictionary.api;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeDto;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeRequest;
 import pl.coolture.restapi.dictionary.application.DictionaryAdminService;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Admin only dictionary management endpoints

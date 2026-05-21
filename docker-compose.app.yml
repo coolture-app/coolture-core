@@ -28,3 +28,37 @@ services:
         condition: service_healthy
       keycloak-config:
         condition: service_completed_successfully
+
+  scrapper:
+    build: ./scrapper
+    hostname: ${SCRAPPER_INTERNAL_HOSTNAME:-scrapper}
+    env_file: .env
+    environment:
+      - SCRAPPER_MODE=${SCRAPPER_MODE:-scheduler}
+      - SCRAPPER_TARGET_URL=${SCRAPPER_TARGET_URL:-https://www.trojmiasto.pl/imprezy/kalendarz-imprez/dni,30dni.html}
+      - SCRAPPER_WRITE_DUMP=${SCRAPPER_WRITE_DUMP:-false}
+      - SCRAPPER_OUTPUT_DIR=${SCRAPPER_OUTPUT_DIR:-/tmp/scrapper}
+      - SCRAPPER_TIMEZONE=${SCRAPPER_TIMEZONE:-Europe/Warsaw}
+      - SCRAPPER_INGEST_ENABLED=${SCRAPPER_INGEST_ENABLED:-true}
+      - SCRAPPER_API_BASE_URL=${SCRAPPER_API_BASE_URL:-http://rest-api:8081/api}
+      - SCRAPPER_KEYCLOAK_BASE_URL=${SCRAPPER_KEYCLOAK_BASE_URL:-http://keycloak:8180}
+      - SCRAPPER_KEYCLOAK_REALM=${SCRAPPER_KEYCLOAK_REALM:-coolture-dev}
+      - SCRAPPER_KEYCLOAK_GRANT_TYPE=${SCRAPPER_KEYCLOAK_GRANT_TYPE:-client_credentials}
+      - SCRAPPER_KEYCLOAK_CLIENT_ID=${SCRAPPER_KEYCLOAK_CLIENT_ID:-coolture-bot}
+      - SCRAPPER_KEYCLOAK_CLIENT_SECRET=${SCRAPPER_KEYCLOAK_CLIENT_SECRET:-}
+      - SCRAPPER_KEYCLOAK_USERNAME=${SCRAPPER_KEYCLOAK_USERNAME:-coolture_admin}
+      - SCRAPPER_KEYCLOAK_PASSWORD=${SCRAPPER_KEYCLOAK_PASSWORD:-admin}
+      - SCRAPPER_EVENT_CATEGORY_NAME=${SCRAPPER_EVENT_CATEGORY_NAME:-}
+      - SCRAPPER_FALLBACK_CATEGORY_NAME=${SCRAPPER_FALLBACK_CATEGORY_NAME:-other}
+      - SCRAPPER_RUN_ON_START=${SCRAPPER_RUN_ON_START:-true}
+      - SCRAPPER_SCHEDULE_WINDOW_START_HOUR=${SCRAPPER_SCHEDULE_WINDOW_START_HOUR:-6}
+      - SCRAPPER_SCHEDULE_WINDOW_END_HOUR=${SCRAPPER_SCHEDULE_WINDOW_END_HOUR:-22}
+      - SCRAPPER_SCHEDULE_SALT=${SCRAPPER_SCHEDULE_SALT:-coolture-scrapper}
+    networks:
+      - devnet
+    restart: unless-stopped
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      rest-api:
+        condition: service_healthy

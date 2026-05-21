@@ -29,3 +29,11 @@ users:
         temporary: false
     groups:
       - /coolture-users
+
+  - username: "service-account-$(env:KEYCLOAK_COOLTURE_BOT_CLIENT_ID)"
+    serviceAccountClientId: "$(env:KEYCLOAK_COOLTURE_BOT_CLIENT_ID)"
+    enabled: true
+    clientRoles:
+      $(env:KEYCLOAK_COOLTURE_GATEWAY_CLIENT_ID):
+        - ROLE_COOLTURE_USER
+        - ROLE_COOLTURE_ADMIN
