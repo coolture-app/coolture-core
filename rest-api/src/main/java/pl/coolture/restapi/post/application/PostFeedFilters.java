@@ -17,7 +17,6 @@ import pl.coolture.restapi.post.domain.PostVisibility;
 @Builder
 public record PostFeedFilters(
         String          q,
-        UUID            categoryId,
         List<String>    tags,
         UUID            authorId,
         PostStatus      status,

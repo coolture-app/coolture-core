@@ -1,6 +1,5 @@
 package pl.coolture.restapi.dictionary.application;
 
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,43 +7,17 @@ import pl.coolture.restapi.common.exceptions.ConflictException;
 import pl.coolture.restapi.common.exceptions.ResourceNotFoundException;
 import pl.coolture.restapi.dictionary.api.DictionaryMapper;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeDto;
-import pl.coolture.restapi.dictionary.api.dto.EventCategoryDto;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeRequest;
-import pl.coolture.restapi.dictionary.api.dto.EventCategoryRequest;
 import pl.coolture.restapi.dictionary.domain.CountryCode;
 import pl.coolture.restapi.dictionary.domain.CountryCodeRepository;
-import pl.coolture.restapi.dictionary.domain.EventCategory;
-import pl.coolture.restapi.dictionary.domain.EventCategoryRepository;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class DictionaryAdminService {
 
-    private final EventCategoryRepository categoryRepository;
     private final CountryCodeRepository countryCodeRepository;
     private final DictionaryMapper mapper;
-
-    public EventCategoryDto createCategory(EventCategoryRequest request) {
-        if (categoryRepository.existsByName(request.name())) {
-            throw new ConflictException("Category already exists: " + request.name());
-        }
-        return mapper.toDto(categoryRepository.save(new EventCategory(request.name())));
-    }
-
-    public EventCategoryDto updateCategory(UUID id, EventCategoryRequest request) {
-        EventCategory category = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
-        category.rename(request.name());
-        return mapper.toDto(category); // saved on tx commit
-    }
-
-    public void deleteCategory(UUID id) {
-        if (!categoryRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Category not found: " + id);
-        }
-        categoryRepository.deleteById(id);
-    }
 
     public CountryCodeDto createCountryCode(CountryCodeRequest request) {
         if (countryCodeRepository.existsById(request.code())) {

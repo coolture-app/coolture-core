@@ -82,7 +82,7 @@ tags:
   - name: Media
     description: S3 media upload and access.
   - name: Dictionaries
-    description: Shared lookup data (categories, countries, etc.)
+    description: Shared lookup data (countries, etc.)
 
 security:
   - bearerAuth: []
@@ -445,11 +445,10 @@ paths:
       summary: Fetch event posts
       security: []
       description: |
-        The primary infinite-scroll feed endpoint. Supports filtering by category, tags, author, date range, 
+        The primary infinite-scroll feed endpoint. Supports filtering by tags, author, date range, 
         and geographic radius (for offline events). Uses cursor pagination for stability.
       parameters:
         - $ref: '#/components/parameters/QueryParam'
-        - $ref: '#/components/parameters/CategoryIdParam'
         - $ref: '#/components/parameters/TagsParam'
         - $ref: '#/components/parameters/AuthorIdParam'
         - $ref: '#/components/parameters/StatusParam'
@@ -852,21 +851,6 @@ paths:
         '409':
           description: Conflict - Media is currently in use and cannot be deleted.
 
-  /dicts/event-categories:
-    get:
-      tags: [Dictionaries]
-      summary: List all available event categories
-      description: Fetches the predefined list of event classifications.
-      responses:
-        '200':
-          description: List of categories
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Category'
-
   /dicts/country-codes:
     get:
       tags: [Dictionaries]
@@ -989,13 +973,6 @@ components:
         type: string
         maxLength: 32
 
-    # Post filtering
-    CategoryIdParam:
-      name: categoryId
-      in: query
-      schema:
-        type: string
-        format: uuid
     TagsParam:
       name: tags
       in: query
@@ -1154,18 +1131,6 @@ components:
           minLength: 3
           maxLength: 3
           examples: [POL]
-
-    Category:
-      type: object
-      required: [id, name]
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          maxLength: 32
-          examples: [music]
 
     # Media
     MediaPurpose:
@@ -1441,7 +1406,6 @@ components:
       required:
         - id
         - author
-        - category
         - title
         - description
         - startsAt
@@ -1459,8 +1423,6 @@ components:
           format: uuid
         author:
           $ref: '#/components/schemas/UserSummary'
-        category:
-          $ref: '#/components/schemas/Category'
         location:
           oneOf:
             - $ref: '#/components/schemas/EventLocation'
@@ -1546,11 +1508,8 @@ components:
 
     PostCreateRequest:
       type: object
-      required: [categoryId, title, description, startsAt, type]
+      required: [title, description, startsAt, type]
       properties:
-        categoryId:
-          type: string
-          format: uuid
         title:
           type: string
           maxLength: 32
@@ -1595,9 +1554,6 @@ components:
     PostUpdateRequest:
       type: object
       properties:
-        categoryId:
-          type: string
-          format: uuid
         title:
           type: string
           maxLength: 32

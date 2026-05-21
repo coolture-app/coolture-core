@@ -15,8 +15,6 @@ import pl.coolture.restapi.common.exceptions.UnauthenticatedUserException;
 import pl.coolture.restapi.common.pagination.CursorCodec;
 import pl.coolture.restapi.common.pagination.CursorPage;
 import pl.coolture.restapi.common.pagination.CursorPayload;
-import pl.coolture.restapi.dictionary.domain.EventCategory;
-import pl.coolture.restapi.dictionary.domain.EventCategoryRepository;
 import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.domain.Media;
 import pl.coolture.restapi.media.domain.MediaRepository;
@@ -41,14 +39,13 @@ import pl.coolture.restapi.post.domain.PostVisibility;
 @Transactional(readOnly = true)
 public class PostService {
 
-  private static final List<String> VALID_PARTICIPATION_TYPES =
-      Arrays.stream(ParticipationType.values()).map(ParticipationType::getValue).toList();
-  private static final List<String> VALID_REACTION_TYPES =
-      Arrays.stream(ReactionType.values()).map(ReactionType::getValue).toList();
+
+
+  private static final Set<String> VALID_PARTICIPATION_TYPES = Set.of("INTERESTED", "TAKES_PART");
+  private static final Set<String> VALID_REACTION_TYPES      = Set.of("LIKE", "DISLIKE");
 
   private final PostRepository postRepository;
   private final UserRepository userRepository;
-  private final EventCategoryRepository categoryRepository;
   private final MediaRepository mediaRepository;
   private final PostMapper postMapper;
   private final CursorCodec cursorCodec;
@@ -82,7 +79,6 @@ public class PostService {
     List<Post> rows =
         postRepository.findFeed(
             blankToNull(f.q()),
-            f.categoryId(),
             toNullableArray(f.tags()),
             f.authorId(),
             f.status() != null ? f.status().name() : null,
@@ -143,18 +139,9 @@ public class PostService {
     validateDateRange(req.startsAt(), req.endsAt());
 
     User author = userRepository.getReferenceById(callerId);
-    EventCategory cat =
-        req.categoryId() == null
-            ? null
-            : categoryRepository
-                .findById(req.categoryId())
-                .orElseThrow(
-                    () -> new ResourceNotFoundException("EventCategory", req.categoryId()));
-
     Post post =
         Post.builder()
             .author(author)
-            .category(cat)
             .location(postMapper.toLocationEntity(req.location()))
             .title(req.title())
             .description(req.description())
@@ -201,13 +188,6 @@ public class PostService {
     if (req.tags() != null) post.setTags(toNullableArray(req.tags()));
     if (req.type() != null) post.setType(req.type());
     if (req.visibility() != null) post.setVisibility(req.visibility());
-
-    if (req.categoryId() != null) {
-      post.setCategory(
-          categoryRepository
-              .findById(req.categoryId())
-              .orElseThrow(() -> new ResourceNotFoundException("EventCategory", req.categoryId())));
-    }
 
     if (locationTouched) {
       if (PostType.ONLINE == newType) {

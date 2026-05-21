@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeDto;
-import pl.coolture.restapi.dictionary.api.dto.EventCategoryDto;
 import pl.coolture.restapi.dictionary.application.DictionaryService;
 
 /**
@@ -21,13 +20,6 @@ public class DictionaryController {
 
     private final DictionaryService dictionaryService;
 
-    /**
-     * Returns the full list of predefined event classifications.
-     */
-    @GetMapping("/event-categories")
-    public ResponseEntity<List<EventCategoryDto>> getEventCategories() {
-        return ResponseEntity.ok(dictionaryService.findAllCategories());
-    }
 
     /**
      * Returns all supported ISO 3166-1 alpha-3 country codes.

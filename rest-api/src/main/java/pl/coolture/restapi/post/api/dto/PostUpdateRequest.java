@@ -13,8 +13,6 @@ import pl.coolture.restapi.post.domain.PostVisibility;
  * All fields optional. Null do not change previous values
  */
 public record PostUpdateRequest(
-        UUID categoryId,
-
         @Size(max = 32)
         String title,
 

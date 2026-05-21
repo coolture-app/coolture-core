@@ -8,7 +8,6 @@ import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import pl.coolture.restapi.dictionary.domain.EventCategory;
 import pl.coolture.restapi.user.domain.User;
 
 @Entity
@@ -27,10 +26,6 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_category_id")
-    private EventCategory category;
 
     /**
      * Null for ONLINE events. cascade = ALL so the location is persisted

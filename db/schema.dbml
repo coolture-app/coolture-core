@@ -89,10 +89,6 @@ Table posts {
         ref: > event_locations.id,
         note: 'null when online event'
     ]
-    event_category_id uuid [
-        not null,
-        ref: > event_categories.id
-    ]
     title varchar(32) [
         not null,
         note: 'always fully visible short description of an event'
@@ -198,8 +194,7 @@ Table posts {
         Core table for cultural events posts.
         The event_location_id is nullable only for ONLINE events, 
         enforced by a table check. 
-        Tags are stored as a PostgreSQL array for flexibility, 
-        while event_category_id links to a predefined organization.
+        Tags are stored as a PostgreSQL array for flexibility.
     '''
 }
 
@@ -387,24 +382,6 @@ Table event_locations {
     '''
         Stores geo data representing event location.
         Fields are nullable to accomodate various event types.
-    '''
-}
-
-Table event_categories {
-    id uuid [
-        pk,
-        default: 'gen_random_uuid()'
-    ]
-    name varchar(32) [
-        not null,
-        unique
-    ]
-
-    Note:
-    '''
-        Dictionary table for predefined event categories.
-        E.g., "music", "workshop", etc.
-        Separate from user tags, allow controlled classification
     '''
 }
 
