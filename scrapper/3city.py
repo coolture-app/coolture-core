@@ -141,7 +141,7 @@ def _iso_utc(dt: datetime) -> str:
     return dt.astimezone(ZoneInfo("UTC")).isoformat().replace("+00:00", "Z")
 
 
-def _build_post_payload(event: dict, category_id: str, now: datetime) -> dict | None:
+def _build_post_payload(event: dict, now: datetime) -> dict | None:
     event_day = _parse_date_from_iso(event.get("event_date"))
     if event_day is not None:
         event_time = _parse_time_from_label(event.get("date_label", "")) or dt_time(hour=12)
@@ -184,7 +184,6 @@ def _build_post_payload(event: dict, category_id: str, now: datetime) -> dict | 
     tags = [_truncate("trojmiasto", 32), _truncate("scrapper", 32)]
 
     return {
-        "categoryId": category_id,
         "title": title,
         "description": description,
         "eventUrl": event.get("source_url"),
@@ -372,7 +371,6 @@ def _ingest_today_events(events: list[dict], today_iso: str, now: datetime) -> d
     api_base_url = os.getenv("SCRAPPER_API_BASE_URL", "http://rest-api:8081/api").rstrip("/")
 
     token = _get_access_token()
-    category_id = _resolve_category_id(api_base_url, token)
     existing_keys = _list_existing_post_keys(api_base_url, token, today_iso)
 
     inserted = 0
@@ -381,7 +379,7 @@ def _ingest_today_events(events: list[dict], today_iso: str, now: datetime) -> d
     skipped_past_or_invalid = 0
 
     for event in events:
-        payload = _build_post_payload(event, category_id, now)
+        payload = _build_post_payload(event, now)
         if payload is None:
             skipped_past_or_invalid += 1
             continue
