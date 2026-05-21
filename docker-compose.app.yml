@@ -22,7 +22,7 @@ services:
     networks:
       - devnet
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://${REST_API_INTERNAL_HOSTNAME:-rest-api}:${REST_API_INTERNAL_PORT:-8081}/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${REST_API_INTERNAL_PORT:-8081}/actuator/health"]
       interval: 15s
       timeout: 5s
       retries: 10
