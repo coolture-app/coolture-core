@@ -72,18 +72,18 @@ clients:
     webOrigins:
       - "http://$(env:HOST_NAME):$(env:GATEWAY_HOST_PORT)"
       - "http://$(env:GATEWAY_INTERNAL_HOSTNAME):$(env:GATEWAY_INTERNAL_PORT)"
-    
+
     # Client behaviour
     # Map of <String, String>
     attributes:
       # List of URIs allowed after logout
       # If set to "+" it inherits uris from redirect uris
-      post.logout.redirect.uris: "+"
+      post.logout.redirect.uris: "+##http://$(env:HOST_NAME):$(env:FRONTEND_HOST_PORT)/*"
 
       # By default PKCE is not used
       # Enforces Proof Key for Code Exchange
       # S256 is forcing SHA-256 usage
-      # By standards it is recommended for public clients 
+      # By standards it is recommended for public clients
       # Here for more security - client must generate a code verifier and challenge
       pkce.code.challenge.method: S256
 
@@ -95,7 +95,7 @@ clients:
       # As the backchannel logout session required but for frontchannel
       # Default is false
       frontchannel.logout.session.required: "true"
-  
+
   - clientId: "$(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID)"
     name: "$(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID)"
     description: "$(env:KEYCLOAK_COOLTURE_SWAGGER_CLIENT_ID) Client"
@@ -110,7 +110,7 @@ clients:
 
     serviceAccountsEnabled: true
     frontchannelLogout: true
-    fullScopeAllowed: false
+    fullScopeAllowed: true
     consentRequired: false
 
     protocol: openid-connect

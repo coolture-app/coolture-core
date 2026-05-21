@@ -31,8 +31,6 @@ public class PostFeedRequest {
     @Size(max = 100)
     private String q;
 
-    private UUID categoryId;
-
     @ArraySchema(schema = @Schema(type = "string", maxLength = 32))
     private List<@Size(max = 32) String> tags;
 
@@ -96,7 +94,6 @@ public class PostFeedRequest {
         return PostFeedFilters.builder()
                 .q(q)
                 .authorId(authorId)
-                .categoryId(categoryId)
                 .tags(tags)
                 .type(type)
                 .reactionType(reactionType)

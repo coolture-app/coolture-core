@@ -61,6 +61,8 @@ spring:
                 - RemoveRequestHeader=Cookie
 
 app:
+  keycloak:
+    endpoint-logout-uri: http://${HOST_NAME:localhost}:${KEYCLOAK_HOST_PORT:8180}/realms/${KEYCLOAK_REALM:coolture-dev}/protocol/openid-connect/logout
   allowed-origins: >
     http://${HOST_NAME:localhost}:${GATEWAY_HOST_PORT:8090},
     http://${HOST_NAME:localhost}:${REST_API_HOST_PORT:8091},
