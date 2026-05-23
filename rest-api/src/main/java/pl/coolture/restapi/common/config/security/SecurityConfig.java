@@ -38,7 +38,7 @@ public class SecurityConfig {
                                         "/h2-console/**",
                                         "/dicts/**")
                                 .permitAll()
-                                .requestMatchers(HttpMethod.GET, "/posts")
+                                .requestMatchers(HttpMethod.GET, "/posts", "/posts/*", "/posts/*/comments")
                                 .permitAll()
                                 .anyRequest()
                                 .authenticated())
