@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeDto;
 import pl.coolture.restapi.dictionary.api.dto.CountryCodeRequest;
 import pl.coolture.restapi.dictionary.application.DictionaryAdminService;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Admin only dictionary management endpoints
