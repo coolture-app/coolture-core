@@ -15,15 +15,12 @@ import pl.coolture.restapi.common.mapper.BaseMapperConfig;
 import pl.coolture.restapi.dictionary.api.DictionaryMapper;
 import pl.coolture.restapi.media.api.dto.MediaResourceDto;
 import pl.coolture.restapi.media.application.MediaService;
-import pl.coolture.restapi.post.api.dto.EventLocationDto;
-import pl.coolture.restapi.post.api.dto.GeoPointDto;
-import pl.coolture.restapi.post.api.dto.PostCardDto;
-import pl.coolture.restapi.post.api.dto.PostDetailDto;
-import pl.coolture.restapi.post.api.dto.PostMediaDto;
+import pl.coolture.restapi.post.api.dto.*;
 import pl.coolture.restapi.post.domain.EventLocation;
 import pl.coolture.restapi.post.domain.Post;
 import pl.coolture.restapi.post.domain.PostMedia;
 import pl.coolture.restapi.user.api.UserMapper;
+import java.util.UUID;
 
 @Mapper(
         config = BaseMapperConfig.class,
@@ -74,6 +71,14 @@ public abstract class PostMapper {
     @Mapping(target = "coordinates", source = "coordinates")
     public abstract void updateLocation(@MappingTarget EventLocation loc, EventLocationDto dto);
 
+    @Mapping(target = "id", source = "p.id")
+    @Mapping(target = "title", source = "p.title")
+    @Mapping(target = "desc", source = "p.description")
+    @Mapping(target = "coverMediaUrl", expression = "java(extractCoverMediaUrl(p.getMedia()))")
+    @Mapping(target = "positiveReactionCount", source = "p.positiveReactionCount")
+    @Mapping(target = "coordinates", source = "p.location.coordinates")
+    public abstract PostMarkDto toPostMarkDto(Post p);
+
     protected GeoPointDto map(Point c) {
         if (c == null) return null;
         // JTS Point: x = longitude, y = latitude
@@ -83,7 +88,7 @@ public abstract class PostMapper {
     protected Point map(GeoPointDto g) {
         if (g == null) return null;
         // Coordinate(x, y) = (longitude, latitude)
-        Point p = GEOMETRY_FACTORY.createPoint(new Coordinate(g.longitude(), g.latitude()));
+        Point p = GEOMETRY_FACTORY.createPoint(new Coordinate(g.getLongitude(), g.getLatitude()));
         p.setSRID(4326);
         return p;
     }
@@ -110,11 +115,33 @@ public abstract class PostMapper {
     }
 
     protected MediaResourceDto extractCoverMedia(List<PostMedia> media) {
-        if (media == null) return null;
+        if (media == null || media.isEmpty()) return null;
         return media.stream()
                 .filter(PostMedia::isCover)
                 .findFirst()
+                .or(() -> media.stream().findFirst())
                 .map(pm -> mediaService.toDto(pm.getMedia()))
+                .orElse(null);
+    }
+
+    protected UUID extractCoverMediaId(List<PostMedia> media) {
+        if (media == null || media.isEmpty()) return null;
+        return media.stream()
+                .filter(PostMedia::isCover)
+                .findFirst()
+                .or(() -> media.stream().findFirst())
+                .map(pm -> pm.getMedia().getId())
+                .orElse(null);
+    }
+
+    protected String extractCoverMediaUrl(List<PostMedia> media) {
+        if (media == null || media.isEmpty()) return null;
+        return media.stream()
+                .filter(PostMedia::isCover)
+                .findFirst()
+                .or(() -> media.stream().findFirst())
+                .map(pm -> mediaService.toDto(pm.getMedia()))
+                .map(MediaResourceDto::url)
                 .orElse(null);
     }
 }

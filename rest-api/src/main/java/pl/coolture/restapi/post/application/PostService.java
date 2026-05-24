@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.coolture.restapi.comment.application.CommentService;
@@ -226,6 +227,40 @@ public class PostService {
 
     post.setStatus(PostStatus.DELETED);
     post.setDeletedAt(Instant.now());
+  }
+
+  public List<PostMarkDto> getPostMarks(
+          UUID callerId, PostFeedFilters f, MapBoundsDto mapBounds){
+
+    String visibilityFilter = getVisibilityFilter(f.visibility(), callerId);
+
+    Double minLng = mapBounds.getLeftUpper().getLongitude();
+    Double maxLat = mapBounds.getLeftUpper().getLatitude();
+
+    Double maxLng = mapBounds.getRightBottom().getLongitude();
+    Double minLat = mapBounds.getRightBottom().getLatitude();
+
+    List<Post> rows = postRepository.findAllMapMarks(
+            f.q(),
+            toNullableArray(f.tags()),
+            f.authorId(),
+            f.status() != null ? f.status().name() : null,
+            visibilityFilter,
+            f.type() != null ? f.type().name() : null,
+            f.startsFrom(),
+            f.startsTo(),
+            minLng,
+            minLat,
+            maxLng,
+            maxLat,
+            toNullableArray(f.participationTypes()),
+            f.reactionType(),
+            callerId
+    );
+
+    return rows.stream()
+            .map(postMapper::toPostMarkDto)
+            .toList();
   }
 
   /**
