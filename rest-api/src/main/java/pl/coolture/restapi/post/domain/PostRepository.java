@@ -142,7 +142,23 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           @Param("minLat") Double minLat,
           @Param("maxLng") Double maxLng,
           @Param("maxLat") Double maxLat,
-          @Param("participationTypes") String[] participationTypes,
+           @Param("participationTypes") String[] participationTypes,
           @Param("reactionType") String reactionType,
           @Param("callerId") UUID callerId);
+
+  /**
+   * Batch-fetches the cover media S3 object key for each post.
+   * Prefers the row flagged is_cover = true; falls back to the lowest-position media.
+   * Returns one row per post (post_id, object_key).
+   */
+  @Query(
+          value = """
+                  SELECT DISTINCT ON (pm.post_id) pm.post_id, m.object_key
+                  FROM post_media pm
+                  JOIN media m ON m.id = pm.media_id
+                  WHERE pm.post_id = ANY(CAST(:postIds AS uuid[]))
+                  ORDER BY pm.post_id, pm.is_cover DESC, pm.position ASC
+                  """,
+          nativeQuery = true)
+  List<Object[]> findCoverMediaKeys(@Param("postIds") UUID[] postIds);
 }

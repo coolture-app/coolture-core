@@ -2,19 +2,8 @@ package pl.coolture.restapi.post.api.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.NotNull;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class GeoPointDto {
-    @Min(-90)
-    @Max(90)
-    private Double latitude;
-
-    @Min(-180)
-    @Max(180)
-    private Double longitude;
-}
+public record GeoPointDto(
+        @NotNull @Min(-90) @Max(90) Double latitude,
+        @NotNull @Min(-180) @Max(180) Double longitude) {}

@@ -3,6 +3,8 @@ package pl.coolture.restapi.post.api;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -20,7 +22,6 @@ import pl.coolture.restapi.post.domain.EventLocation;
 import pl.coolture.restapi.post.domain.Post;
 import pl.coolture.restapi.post.domain.PostMedia;
 import pl.coolture.restapi.user.api.UserMapper;
-import java.util.UUID;
 
 @Mapper(
         config = BaseMapperConfig.class,
@@ -71,13 +72,18 @@ public abstract class PostMapper {
     @Mapping(target = "coordinates", source = "coordinates")
     public abstract void updateLocation(@MappingTarget EventLocation loc, EventLocationDto dto);
 
+    /**
+     * Maps a Post to a PostMarkDto with a pre-resolved cover media URL.
+     * The coverMediaUrl is passed in from the service layer to avoid
+     * lazy-loading p.getMedia() (which would trigger N+1 SELECTs).
+     */
     @Mapping(target = "id", source = "p.id")
     @Mapping(target = "title", source = "p.title")
-    @Mapping(target = "desc", source = "p.description")
-    @Mapping(target = "coverMediaUrl", expression = "java(extractCoverMediaUrl(p.getMedia()))")
+    @Mapping(target = "description", source = "p.description")
+    @Mapping(target = "coverMediaUrl", source = "coverMediaUrl")
     @Mapping(target = "positiveReactionCount", source = "p.positiveReactionCount")
     @Mapping(target = "coordinates", source = "p.location.coordinates")
-    public abstract PostMarkDto toPostMarkDto(Post p);
+    public abstract PostMarkDto toPostMarkDto(Post p, String coverMediaUrl);
 
     protected GeoPointDto map(Point c) {
         if (c == null) return null;
@@ -88,7 +94,7 @@ public abstract class PostMapper {
     protected Point map(GeoPointDto g) {
         if (g == null) return null;
         // Coordinate(x, y) = (longitude, latitude)
-        Point p = GEOMETRY_FACTORY.createPoint(new Coordinate(g.getLongitude(), g.getLatitude()));
+        Point p = GEOMETRY_FACTORY.createPoint(new Coordinate(g.longitude(), g.latitude()));
         p.setSRID(4326);
         return p;
     }
@@ -114,33 +120,26 @@ public abstract class PostMapper {
         );
     }
 
-    protected MediaResourceDto extractCoverMedia(List<PostMedia> media) {
+    /**
+     * Finds the cover PostMedia entry (or falls back to the first entry)
+     * and applies the given mapping function.
+     */
+    private <T> T findCoverMedia(List<PostMedia> media, Function<PostMedia, T> mapper) {
         if (media == null || media.isEmpty()) return null;
         return media.stream()
                 .filter(PostMedia::isCover)
                 .findFirst()
                 .or(() -> media.stream().findFirst())
-                .map(pm -> mediaService.toDto(pm.getMedia()))
+                .map(mapper)
                 .orElse(null);
     }
 
-    protected UUID extractCoverMediaId(List<PostMedia> media) {
-        if (media == null || media.isEmpty()) return null;
-        return media.stream()
-                .filter(PostMedia::isCover)
-                .findFirst()
-                .or(() -> media.stream().findFirst())
-                .map(pm -> pm.getMedia().getId())
-                .orElse(null);
+    protected MediaResourceDto extractCoverMedia(List<PostMedia> media) {
+        return findCoverMedia(media, pm -> mediaService.toDto(pm.getMedia()));
     }
 
     protected String extractCoverMediaUrl(List<PostMedia> media) {
-        if (media == null || media.isEmpty()) return null;
-        return media.stream()
-                .filter(PostMedia::isCover)
-                .findFirst()
-                .or(() -> media.stream().findFirst())
-                .map(pm -> mediaService.toDto(pm.getMedia()))
+        return Optional.ofNullable(extractCoverMedia(media))
                 .map(MediaResourceDto::url)
                 .orElse(null);
     }

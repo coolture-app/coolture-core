@@ -31,6 +31,7 @@ import pl.coolture.restapi.reaction.domain.ReactionType;
 import pl.coolture.restapi.user.application.UserAvatarService;
 import pl.coolture.restapi.user.domain.User;
 import pl.coolture.restapi.user.domain.UserRepository;
+import pl.coolture.restapi.common.config.storage.PresignService;
 import pl.coolture.restapi.post.domain.PostType;
 import pl.coolture.restapi.post.domain.PostStatus;
 import pl.coolture.restapi.post.domain.PostVisibility;
@@ -54,6 +55,7 @@ public class PostService {
   private final ReactionService reactionService;
   private final ParticipationService participationService;
   private final UserAvatarService userAvatarService;
+  private final PresignService presignService;
 
   /**
    * Paginated feed with optional filters and cursor pagination.
@@ -234,11 +236,11 @@ public class PostService {
 
     String visibilityFilter = getVisibilityFilter(f.visibility(), callerId);
 
-    Double minLng = mapBounds.getLeftUpper().getLongitude();
-    Double maxLat = mapBounds.getLeftUpper().getLatitude();
+    Double minLng = mapBounds.leftUpper().longitude();
+    Double maxLat = mapBounds.leftUpper().latitude();
 
-    Double maxLng = mapBounds.getRightBottom().getLongitude();
-    Double minLat = mapBounds.getRightBottom().getLatitude();
+    Double maxLng = mapBounds.rightBottom().longitude();
+    Double minLat = mapBounds.rightBottom().latitude();
 
     List<Post> rows = postRepository.findAllMapMarks(
             f.q(),
@@ -258,10 +260,14 @@ public class PostService {
             callerId
     );
 
+    // Batch-fetch cover media object keys and presign URLs (avoids N+1 selects)
+    Map<UUID, String> coverUrls = resolveCoverMediaUrls(rows);
+
     return rows.stream()
-            .map(postMapper::toPostMarkDto)
+            .map(p -> postMapper.toPostMarkDto(p, coverUrls.get(p.getId())))
             .toList();
   }
+
 
   /**
    * Batch fetch of caller's reactions and participations for a page of posts, then sets them via
@@ -419,5 +425,21 @@ public class PostService {
       return PostVisibility.PUBLIC.name();
     }
     return null;
+  }
+
+  /**
+   * Batch-fetches cover media S3 object keys for the given posts and presigns GET URLs.
+   * Returns a map from postId to presigned cover media URL.
+   */
+  private Map<UUID, String> resolveCoverMediaUrls(List<Post> posts) {
+    if (posts.isEmpty()) return Map.of();
+
+    UUID[] postIds = posts.stream().map(Post::getId).toArray(UUID[]::new);
+    List<Object[]> rows = postRepository.findCoverMediaKeys(postIds);
+
+    return rows.stream()
+            .collect(Collectors.toMap(
+                    row -> (UUID) row[0],
+                    row -> presignService.presignGet((String) row[1]).url().toString()));
   }
 }
