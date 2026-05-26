@@ -123,6 +123,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Messaging -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- PostGIS Hibernate integration -->
         <dependency>
             <groupId>org.hibernate.orm</groupId>

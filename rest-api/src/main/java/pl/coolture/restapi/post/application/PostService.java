@@ -33,6 +33,8 @@ import pl.coolture.restapi.user.domain.UserRepository;
 import pl.coolture.restapi.post.domain.PostType;
 import pl.coolture.restapi.post.domain.PostStatus;
 import pl.coolture.restapi.post.domain.PostVisibility;
+import org.springframework.context.ApplicationEventPublisher;
+import pl.coolture.restapi.embedding.domain.PostEmbeddingMessage;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +55,7 @@ public class PostService {
   private final ReactionService reactionService;
   private final ParticipationService participationService;
   private final UserAvatarService userAvatarService;
+  private final ApplicationEventPublisher eventPublisher;
 
   /**
    * Paginated feed with optional filters and cursor pagination.
@@ -159,6 +162,9 @@ public class PostService {
     attachMedia(post, callerId, req.mediaIds(), req.coverMediaId());
 
     post = postRepository.save(post);
+    eventPublisher.publishEvent(
+        new PostEmbeddingMessage(post.getId(), post.getTitle(), post.getDescription(),
+            post.getTags() != null ? List.of(post.getTags()) : List.of(), post.getCreatedAt()));
     return postMapper.toDetail(
             post,
             userAvatarService.resolveThumbnail(post.getAuthor().getId()));

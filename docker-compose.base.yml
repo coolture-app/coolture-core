@@ -124,6 +124,23 @@ services:
       IMPORT_VAR_SUBSTITUTION_ENABLED: "true" # basic syntax is $(var_origin:VAR_NAME)
     restart: "no" # one-shot
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    hostname: ${RABBITMQ_INTERNAL_HOSTNAME:-rabbitmq}
+    ports:
+      - "${RABBITMQ_HOST_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_HOST_PORT:-15672}:15672"
+    networks:
+      - devnet
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres:
     build: ./db
     hostname: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}

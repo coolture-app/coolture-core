@@ -21,6 +21,9 @@
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "24"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13"
     }
   },
 
@@ -65,6 +68,7 @@
     "mavenSetupRestApi": "./rest-api/mvnw -f ./rest-api/pom.xml dependency:resolve dependency:resolve-plugins",
     "mavenSetupGateway": "./gateway/mvnw -f ./gateway/pom.xml dependency:resolve dependency:resolve-plugins",
 //    "npmDependencies": "npm install",
-    "postgresClient": "sudo apt-get update && sudo apt-get install -y postgresql-client"
+    "postgresClient": "sudo apt-get update && sudo apt-get install -y postgresql-client",
+    "pythonWorkerDeps": "pip install -r /workspace/embedding-worker/requirements.txt"
   }
 }

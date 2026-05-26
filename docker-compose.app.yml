@@ -28,3 +28,17 @@ services:
         condition: service_healthy
       keycloak-config:
         condition: service_completed_successfully
+
+  embedding-worker:
+    build: ./embedding-worker
+    networks:
+      - devnet
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_CONNECT_HOSTNAME: ${RABBITMQ_INTERNAL_HOSTNAME:-rabbitmq}
+      RABBITMQ_CONNECT_PORT: ${RABBITMQ_INTERNAL_PORT:-5672}
+      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin}
+    restart: on-failure
