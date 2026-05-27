@@ -27,7 +27,7 @@ public class UserEmbedding {
   private UUID userId;
 
   @JdbcTypeCode(SqlTypes.VECTOR)
-  @Column(nullable = false, columnDefinition = "vector(1536)")
+  @Column(nullable = false, columnDefinition = "vector(768)")
   private float[] embedding;
 
   @Column(nullable = false, length = 128)

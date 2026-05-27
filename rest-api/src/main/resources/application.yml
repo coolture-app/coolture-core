@@ -47,7 +47,7 @@ spring:
       max-request-size: 50MB
 
 embedding:
-  vector-dim: ${EMBEDDING_VECTOR_DIM:1536}
+  vector-dim: ${EMBEDDING_VECTOR_DIM:768}
 
 storage:
   s3:

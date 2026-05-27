@@ -7,6 +7,7 @@
 # Python
 venv
 .venv
+*.cpython-*
 
 # IntelliJ IDEA
 .idea

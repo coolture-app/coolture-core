@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS post_embeddings
             REFERENCES posts (id)
             ON DELETE CASCADE,
 
-    embedding  vector(1536) NOT NULL,
+    embedding  vector(768) NOT NULL,
     model      VARCHAR(128) NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS user_embeddings
             REFERENCES users (id)
             ON DELETE CASCADE,
 
-    embedding  vector(1536) NOT NULL,
+    embedding  vector(768) NOT NULL,
     model      VARCHAR(128) NOT NULL,
 
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

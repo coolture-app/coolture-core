@@ -69,6 +69,7 @@
     "mavenSetupGateway": "./gateway/mvnw -f ./gateway/pom.xml dependency:resolve dependency:resolve-plugins",
 //    "npmDependencies": "npm install",
     "postgresClient": "sudo apt-get update && sudo apt-get install -y postgresql-client",
-    "pythonWorkerDeps": "pip install -r /workspace/embedding-worker/requirements.txt"
+    "pythonPostEmbeddingWorkerDeps": "pip install -r /workspace/post-embedding-worker/requirements.txt",
+    "pythonUserEmbeddingWorkerDeps": "pip install -r /workspace/user-embedding-worker/requirements.txt"
   }
 }

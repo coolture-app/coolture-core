@@ -24,7 +24,7 @@ KEYCLOAK_DB_PASSWORD ?= keycloak
 KEYCLOAK_DB_NAME ?= keycloak
 
 # Embedding
-EMBEDDING_VECTOR_DIM ?= 1536
+EMBEDDING_VECTOR_DIM ?= 768
 
 # Keycloak Realms
 KEYCLOAK_REALM := coolture-dev

@@ -29,16 +29,32 @@ services:
       keycloak-config:
         condition: service_completed_successfully
 
-  embedding-worker:
-    build: ./embedding-worker
+  post-embedding-worker:
+    build: ./post-embedding-worker
     networks:
       - devnet
     depends_on:
       rabbitmq:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file: .env
     environment:
       RABBITMQ_CONNECT_HOSTNAME: ${RABBITMQ_INTERNAL_HOSTNAME:-rabbitmq}
       RABBITMQ_CONNECT_PORT: ${RABBITMQ_INTERNAL_PORT:-5672}
-      RABBITMQ_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-admin}
+      POSTGRES_CONNECT_HOSTNAME: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
+      POSTGRES_CONNECT_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
+    restart: on-failure
+
+  user-embedding-worker:
+    build: ./user-embedding-worker
+    networks:
+      - devnet
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      POSTGRES_CONNECT_HOSTNAME: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
+      POSTGRES_CONNECT_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
     restart: on-failure

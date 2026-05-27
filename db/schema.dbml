@@ -516,7 +516,7 @@ Table post_embeddings {
         ref: - posts.id,
         note: 'one-to-one with posts; populated asynchronously by Python embedding worker'
     ]
-    embedding vector(1536) [
+    embedding vector(768) [
         not null,
         note: 'dense vector representation of post content; dimension matches selected embedding model'
     ]
@@ -551,7 +551,7 @@ Table user_embeddings {
         ref: - users.id,
         note: 'one-to-one with users; represents aggregated interest vector'
     ]
-    embedding vector(1536) [
+    embedding vector(768) [
         not null,
         note: 'aggregated interest vector derived from user interactions (reactions, participations)'
     ]
