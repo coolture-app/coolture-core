@@ -10,7 +10,7 @@ import pl.coolture.restapi.post.domain.PostVisibility;
 
 public record PostCreateRequest(
         @NotBlank
-        @Size(max = 32)
+        @Size(max = 128)
         String title,
 
         @NotBlank
