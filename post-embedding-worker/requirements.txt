@@ -1,3 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 pika==1.4.1
 sentence-transformers==5.5.1
 psycopg2-binary==2.9.10

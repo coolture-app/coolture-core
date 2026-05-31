@@ -1,6 +1,8 @@
 package pl.coolture.restapi.post.api;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +22,13 @@ import pl.coolture.restapi.post.application.PostService;
 public class PostController {
 
     private final PostService postService;
+
+    @GetMapping("/recommendations")
+    public CursorPage<PostCardDto> getRecommendations(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
+        return postService.getRecommendations(SecurityUtils.getCurrentUserId(), cursor, limit);
+    }
 
     // ModelAttribute annotation treats every field as optional
     // ParameterObject annotation for Swagger UI to treat it as query params

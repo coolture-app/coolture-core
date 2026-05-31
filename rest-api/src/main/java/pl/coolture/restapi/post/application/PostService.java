@@ -57,6 +57,26 @@ public class PostService {
   private final UserAvatarService userAvatarService;
   private final ApplicationEventPublisher eventPublisher;
 
+  public CursorPage<PostCardDto> getRecommendations(UUID callerId, String cursor, int limit) {
+    var payload = cursorCodec.decode(cursor);
+
+    List<Post> rows = postRepository.findRecommendations(
+        callerId,
+        payload.map(CursorPayload::createdAt).orElse(null),
+        payload.map(CursorPayload::id).orElse(null),
+        limit + 1);
+
+    Map<UUID, MediaResourceDto> avatars = userAvatarService.resolveThumbnails(
+        rows.stream().map(p -> p.getAuthor().getId()).toList());
+
+    List<PostCardDto> dtos = rows.stream()
+        .map(p -> postMapper.toCard(p, avatars.get(p.getAuthor().getId())))
+        .toList();
+
+    enrich(dtos, callerId);
+    return CursorPage.of(dtos, limit, PostCardDto::getId, PostCardDto::getCreatedAt, cursorCodec);
+  }
+
   /**
    * Paginated feed with optional filters and cursor pagination.
    *
