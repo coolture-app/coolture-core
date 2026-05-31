@@ -24,6 +24,8 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
           WHERE p.deleted_at IS NULL
             AND p.visibility = 'PUBLIC'
             AND p.author_id != CAST(:userId AS uuid)
+            AND NOT EXISTS (SELECT 1 FROM post_reactions pr WHERE pr.post_id = p.id AND pr.user_id = CAST(:userId AS uuid))
+            AND NOT EXISTS (SELECT 1 FROM post_participations pp WHERE pp.post_id = p.id AND pp.user_id = CAST(:userId AS uuid))
             AND (CAST(:cursorCreatedAt AS timestamptz) IS NULL
                  OR p.created_at < CAST(:cursorCreatedAt AS timestamptz)
                  OR (p.created_at = CAST(:cursorCreatedAt AS timestamptz)
