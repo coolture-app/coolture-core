@@ -64,6 +64,7 @@ services:
       POSTGRES_CONNECT_HOSTNAME: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
       POSTGRES_CONNECT_PORT: ${POSTGRES_INTERNAL_PORT:-5432}
     restart: on-failure
+
   scrapper:
     build: ./scrapper
     hostname: ${SCRAPPER_INTERNAL_HOSTNAME:-scrapper}

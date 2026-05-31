@@ -78,6 +78,7 @@ public class PostService {
     enrich(dtos, callerId);
     return CursorPage.of(dtos, limit, PostCardDto::getId, PostCardDto::getCreatedAt, cursorCodec);
   }
+
   private final PresignService presignService;
 
   /**

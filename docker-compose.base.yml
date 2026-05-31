@@ -151,6 +151,7 @@ services:
 
   postgres:
     build: ./db
+    platform: linux/amd64
     hostname: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
     env_file: .env
     environment:
