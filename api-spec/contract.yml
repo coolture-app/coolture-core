@@ -605,6 +605,84 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /posts/map:
+    get:
+      tags: [Posts]
+      summary: Fetch map markers for events within a bounding box
+      security: []
+      description: |
+        Returns lightweight post markers for rendering on a map.
+        Results are filtered to events whose coordinates fall within the given bounding box
+        (defined by `leftUpper` and `rightBottom` corners). Only OFFLINE events with coordinates
+        are included.
+        
+        Supports the same feed filters as `GET /posts` (tags, author, date range, etc.)
+        but returns a simplified `PostMark` schema optimized for map pins.
+      parameters:
+        - $ref: '#/components/parameters/QueryParam'
+        - $ref: '#/components/parameters/TagsParam'
+        - $ref: '#/components/parameters/AuthorIdParam'
+        - $ref: '#/components/parameters/StatusParam'
+        - $ref: '#/components/parameters/VisibilityParam'
+        - $ref: '#/components/parameters/TypeParam'
+        - $ref: '#/components/parameters/StartsFromParam'
+        - $ref: '#/components/parameters/StartsToParam'
+        - $ref: '#/components/parameters/ParticipationTypesParam'
+        - $ref: '#/components/parameters/ReactionTypeParam'
+        - name: leftUpper.latitude
+          in: query
+          required: true
+          description: Latitude of the upper-left corner of the bounding box.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+        - name: leftUpper.longitude
+          in: query
+          required: true
+          description: Longitude of the upper-left corner of the bounding box.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+        - name: rightBottom.latitude
+          in: query
+          required: true
+          description: Latitude of the bottom-right corner of the bounding box.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+        - name: rightBottom.longitude
+          in: query
+          required: true
+          description: Longitude of the bottom-right corner of the bounding box.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+      responses:
+        '200':
+          description: List of post markers within the bounding box
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PostMark'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Returned when using filters that require authentication (reactionType, participationTypes) without a valid JWT.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /posts/{postId}/comments:
     get:
       tags: [Comments]
@@ -1461,7 +1539,7 @@ components:
           description: Required for OFFLINE events, null for ONLINE events.
         title:
           type: string
-          maxLength: 32
+          maxLength: 128
         description:
           type: string
           maxLength: 1024
@@ -1521,6 +1599,32 @@ components:
             - $ref: '#/components/schemas/MediaResource'
             - type: 'null'
 
+    PostMark:
+      type: object
+      required: [id, title, description, positiveReactionCount, coordinates]
+      description: |
+        Lightweight post representation optimized for map markers.
+        Contains only the data needed to render a pin and its popup.
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 32
+        description:
+          type: string
+          maxLength: 1024
+        coverMediaUrl:
+          type: ["string", "null"]
+          format: uri
+          description: Presigned GET URL of the cover media image, if any.
+        positiveReactionCount:
+          type: integer
+          minimum: 0
+        coordinates:
+          $ref: '#/components/schemas/GeoPoint'
+
     PostCard:
       allOf:
         - $ref: '#/components/schemas/PostBase'
@@ -1543,7 +1647,7 @@ components:
       properties:
         title:
           type: string
-          maxLength: 32
+          maxLength: 128
         description:
           type: string
           maxLength: 1024
@@ -1587,7 +1691,7 @@ components:
       properties:
         title:
           type: string
-          maxLength: 32
+          maxLength: 128
         description:
           type: string
           maxLength: 1024

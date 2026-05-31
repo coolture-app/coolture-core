@@ -1,0 +1,5 @@
+playwright==1.46.0
+beautifulsoup4
+dateparser
+tzdata
+requests

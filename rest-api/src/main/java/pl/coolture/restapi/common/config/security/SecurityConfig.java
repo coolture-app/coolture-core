@@ -27,14 +27,19 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(
-                        auth -> auth.requestMatchers(
-                                "/actuator/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/api-docs/**",
-                                "/h2-console/**",
-                                "/dicts/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/posts").permitAll()
+                        auth -> auth
+                                .requestMatchers("/dicts/admin/**")
+                                .hasRole("COOLTURE_ADMIN")
+                                .requestMatchers(
+                                        "/actuator/**",
+                                        "/swagger-ui/**",
+                                        "/swagger-ui.html",
+                                        "/api-docs/**",
+                                        "/h2-console/**",
+                                        "/dicts/**")
+                                .permitAll()
+                                .requestMatchers(HttpMethod.GET, "/posts", "/posts/*", "/posts/*/comments")
+                                .permitAll()
                                 .anyRequest()
                                 .authenticated())
                 .oauth2ResourceServer(
@@ -45,8 +50,8 @@ public class SecurityConfig {
     }
 
     /**
-   * Provides a JwtAuthenticationConverter that delegates authority extraction Using 'new
-   * CooltureJwtAuthConverter()' would break @Value injection inside that converter.
+     * Provides a JwtAuthenticationConverter that delegates authority extraction. Using
+     * 'new CooltureJwtAuthConverter()' would break @Value injection inside that converter.
      */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter(

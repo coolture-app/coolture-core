@@ -8,6 +8,8 @@
 venv
 .venv
 *.cpython-*
+__pycache__/
+*.pyc
 
 # IntelliJ IDEA
 .idea

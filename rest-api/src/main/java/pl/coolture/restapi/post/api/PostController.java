@@ -62,4 +62,11 @@ public class PostController {
     public void delete(@PathVariable UUID postId) {
         postService.softDelete(postId, SecurityUtils.getCurrentUserId());
     }
+
+    @GetMapping("/map")
+    public List<PostMarkDto> getMarks(@ParameterObject @ModelAttribute @Valid PostFeedRequest req,
+                                      @ParameterObject @ModelAttribute @Valid MapBoundsDto mapBounds) {
+        UUID callerId = SecurityUtils.getCurrentUserIdOrNull();
+        return postService.getPostMarks(callerId, req.toFilters(), mapBounds);
+    }
 }

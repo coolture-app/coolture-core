@@ -42,8 +42,12 @@ jobs:
           GARAGE_METRICS_TOKEN: ${{ secrets.GARAGE_METRICS_TOKEN }}
           GARAGE_ACCESS_KEY_ID: ${{ secrets.GARAGE_ACCESS_KEY_ID }}
           GARAGE_ACCESS_KEY_SECRET: ${{ secrets.GARAGE_ACCESS_KEY_SECRET }}
+          KC_BOT_SECRET: ${{ secrets.KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET }}
         run: |
           HOST_NAME_VALUE="${DEPLOY_HOST_NAME:-localhost}"
+          if [ -n "${KC_BOT_SECRET:-}" ]; then
+            export KEYCLOAK_COOLTURE_BOT_CLIENT_SECRET="$KC_BOT_SECRET"
+          fi
           make env ENV=deploy HOST_NAME="$HOST_NAME_VALUE" H_GATEWAY_PORT=8090
 
       - name: Ensure shared Docker network exists

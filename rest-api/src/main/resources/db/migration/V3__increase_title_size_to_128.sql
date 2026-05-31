@@ -1,0 +1,1 @@
+ALTER TABLE posts ALTER COLUMN title TYPE varchar(128);

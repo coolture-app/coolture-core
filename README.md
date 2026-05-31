@@ -85,3 +85,41 @@ In `./api/` there is `contract.yml` file that is version controlled source of tr
 Can edit it and preview it easily using Swagger Editor in browser or with `42crunch.vscode-openapi` extension to VS Code.
 
 After full implementation this contract can be abandoned, bcs Spring will provide it's own OpenAPI docs.
+
+### 3miasto Scrapper Service
+
+`scrapper` is now part of `docker-compose.app.yml` and runs on the same `devnet` as other backend services.
+
+- It scrapes from `SCRAPPER_TARGET_URL`.
+- Optional JSON dump writing is disabled by default (`SCRAPPER_WRITE_DUMP=false`).
+- If enabled, dumps are written inside container filesystem to `SCRAPPER_OUTPUT_DIR` (default `/tmp/scrapper`).
+- It can ingest scraped events into DB through authenticated REST API calls:
+  - gets OAuth2 access token from Keycloak (`client_credentials`)
+  - sends `POST /api/posts` with `Authorization: Bearer <token>`
+- It supports:
+  - `SCRAPPER_MODE=once` for one-shot runs
+  - `SCRAPPER_MODE=scheduler` for continuous daily scheduling
+
+The scheduler picks a different run time every day within:
+
+- `SCRAPPER_SCHEDULE_WINDOW_START_HOUR`
+- `SCRAPPER_SCHEDULE_WINDOW_END_HOUR`
+
+Set `SCRAPPER_RUN_ON_START=true` if you want an immediate run on container startup.
+
+For Keycloak/API integration configure:
+
+- `SCRAPPER_INGEST_ENABLED=true`
+- `SCRAPPER_API_BASE_URL=http://rest-api:8081/api`
+- `SCRAPPER_KEYCLOAK_BASE_URL=http://keycloak:8180`
+- `SCRAPPER_KEYCLOAK_REALM=coolture-dev`
+- `SCRAPPER_KEYCLOAK_GRANT_TYPE=password` or `client_credentials`
+- for `password`:
+  - `SCRAPPER_KEYCLOAK_CLIENT_ID=admin-cli`
+  - `SCRAPPER_KEYCLOAK_USERNAME=coolture_admin`
+  - `SCRAPPER_KEYCLOAK_PASSWORD=admin`
+- for `client_credentials`:
+  - `SCRAPPER_KEYCLOAK_CLIENT_ID=<service-client-id>`
+  - `SCRAPPER_KEYCLOAK_CLIENT_SECRET=<service-client-secret>`
+- `SCRAPPER_EVENT_CATEGORY_NAME=<optional-existing-category-name>`
+- `SCRAPPER_FALLBACK_CATEGORY_NAME=other` (auto-created when no category exists)
