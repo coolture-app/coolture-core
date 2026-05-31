@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 import numpy as np
-import psycopg
+from psycopg_pool import ConnectionPool
 
 from settings import settings
 
@@ -20,7 +20,7 @@ WEIGHTS: dict[str, float] = {
 }
 
 
-def _make_db_pool() -> psycopg.ConnectionPool:
+def _make_db_pool() -> ConnectionPool:
     conninfo = (
         f"host={settings.postgres_connect_hostname} "
         f"port={settings.postgres_connect_port} "
@@ -28,18 +28,17 @@ def _make_db_pool() -> psycopg.ConnectionPool:
         f"user={settings.postgres_user} "
         f"password={settings.postgres_password}"
     )
-    return psycopg.ConnectionPool(conninfo, min_size=1, max_size=2)
+    return ConnectionPool(conninfo, min_size=1, max_size=2)
 
 
-def run_once(db_pool: psycopg.ConnectionPool) -> int:
+def run_once(db_pool: ConnectionPool) -> int:
     user_data: dict[str, list[tuple[np.ndarray, float]]] = defaultdict(list)
-    upserted = 0
 
     with db_pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT interactions.user_id, pe.embedding, interactions.type
+                SELECT interactions.user_id, pe.embedding::real[], interactions.type
                 FROM (
                     SELECT user_id, post_id, type FROM post_reactions
                     UNION ALL
@@ -48,7 +47,7 @@ def run_once(db_pool: psycopg.ConnectionPool) -> int:
                 JOIN post_embeddings pe ON pe.post_id = interactions.post_id
                 """
             )
-            for user_id, embedding, interaction_type in cur.fetchall():
+            for user_id, embedding, interaction_type in cur:
                 weight = WEIGHTS.get(interaction_type, 0.0)
                 if weight != 0.0:
                     user_data[user_id].append((np.array(embedding, dtype=np.float32), weight))
@@ -57,33 +56,37 @@ def run_once(db_pool: psycopg.ConnectionPool) -> int:
             logger.info("no interactions with embeddings found, skipping")
             return 0
 
+        rows = []
+        for user_id, weighted_vecs in user_data.items():
+            vectors = np.array([v for v, _ in weighted_vecs])
+            weights = np.array([w for _, w in weighted_vecs])
+
+            total_weight = weights.sum()
+            if total_weight == 0:
+                continue
+
+            vector = (vectors * weights[:, np.newaxis]).sum(axis=0) / total_weight
+            norm = np.linalg.norm(vector)
+            if norm > 1e-9:
+                vector /= norm
+
+            vector_str = "[" + ",".join(map(str, vector.tolist())) + "]"
+            rows.append((str(user_id), vector_str, settings.embedding_model))
+
         with conn.cursor() as cur:
-            for user_id, weighted_vecs in user_data.items():
-                vectors = np.array([v for v, _ in weighted_vecs])
-                weights = np.array([w for _, w in weighted_vecs])
+            cur.executemany(
+                """
+                INSERT INTO user_embeddings (user_id, embedding, model, updated_at)
+                VALUES (%s, %s::vector, %s, now())
+                ON CONFLICT (user_id) DO UPDATE
+                    SET embedding  = EXCLUDED.embedding,
+                        model      = EXCLUDED.model,
+                        updated_at = now()
+                """,
+                rows,
+            )
 
-                total_weight = weights.sum()
-                if total_weight == 0:
-                    continue
-
-                vector = (vectors * weights[:, np.newaxis]).sum(axis=0) / total_weight
-                norm = np.linalg.norm(vector)
-                if norm > 1e-9:
-                    vector /= norm
-
-                cur.execute(
-                    """
-                    INSERT INTO user_embeddings (user_id, embedding, model, updated_at)
-                    VALUES (%s, %s, %s, now())
-                    ON CONFLICT (user_id) DO UPDATE
-                        SET embedding  = EXCLUDED.embedding,
-                            model      = EXCLUDED.model,
-                            updated_at = now()
-                    """,
-                    (str(user_id), vector.tolist(), settings.embedding_model),
-                )
-                upserted += 1
-
+    upserted = len(rows)
     logger.info("upserted user embeddings for %d users", upserted)
     return upserted
 
@@ -112,8 +115,8 @@ def main() -> None:
         run_start = time.monotonic()
         try:
             run_once(db_pool)
-        except Exception as e:
-            logger.error("run failed: %s", e, exc_info=True)
+        except Exception:
+            logger.exception("run failed")
 
         elapsed = time.monotonic() - run_start
         sleep_time = max(interval - elapsed, 5)

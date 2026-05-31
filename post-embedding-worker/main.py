@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 import pika
 import psycopg
+from psycopg_pool import ConnectionPool
 from pika.adapters.blocking_connection import BlockingChannel, BlockingConnection
 from pika.spec import Basic, BasicProperties
 from sentence_transformers import SentenceTransformer
@@ -27,7 +28,7 @@ def _pika_params() -> pika.ConnectionParameters:
     )
 
 
-def _make_db_pool(minconn: int = 1, maxconn: int = 4) -> psycopg.ConnectionPool:
+def _make_db_pool(minconn: int = 1, maxconn: int = 4) -> ConnectionPool:
     conninfo = (
         f"host={settings.postgres_connect_hostname} "
         f"port={settings.postgres_connect_port} "
@@ -35,10 +36,10 @@ def _make_db_pool(minconn: int = 1, maxconn: int = 4) -> psycopg.ConnectionPool:
         f"user={settings.postgres_user} "
         f"password={settings.postgres_password}"
     )
-    return psycopg.ConnectionPool(conninfo, min_size=minconn, max_size=maxconn)
+    return ConnectionPool(conninfo, min_size=minconn, max_size=maxconn)
 
 
-def upsert_embedding(db_pool: psycopg.ConnectionPool, record: PostEmbeddingRecord) -> None:
+def upsert_embedding(db_pool: ConnectionPool, record: PostEmbeddingRecord) -> None:
     with db_pool.connection() as conn:
         conn.execute(
             """
@@ -63,7 +64,7 @@ def _processing_retry(max_attempts: int) -> Retrying:
 
 def _make_on_message(
     model: SentenceTransformer,
-    db_pool: psycopg.ConnectionPool,
+    db_pool: ConnectionPool,
     max_retries: int,
 ) -> Callable:
     def on_message(
@@ -98,7 +99,7 @@ def _make_on_message(
 
 def _make_on_dlq_message(
     model: SentenceTransformer,
-    db_pool: psycopg.ConnectionPool,
+    db_pool: ConnectionPool,
     max_retries: int,
 ) -> Callable:
     def on_dlq_message(
