@@ -509,7 +509,7 @@ Table post_media {
     '''
 }
 
-// Embedding tables (pgvector - used by recommendation system)
+// Embedding tables
 Table post_embeddings {
     post_id uuid [
         pk,

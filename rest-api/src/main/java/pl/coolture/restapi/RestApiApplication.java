@@ -6,7 +6,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableAsync
-// @EnableCaching // uncomment when a CacheManager bean is configured
 public class RestApiApplication {
 
   public static void main(String[] args) {
