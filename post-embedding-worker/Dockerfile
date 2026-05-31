@@ -1,8 +1,11 @@
 FROM python:3.13-alpine
 
+COPY --from=ghcr.io/astral-sh/uv:0.7.8 /uv /usr/local/bin/uv
+
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen --no-dev
+
 COPY main.py models.py settings.py ./
 
-CMD ["python", "main.py"]
+CMD ["uv", "run", "python", "main.py"]

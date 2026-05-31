@@ -2,17 +2,18 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PostEmbeddingMessage(BaseModel):
-    postId: UUID
+    model_config = ConfigDict(populate_by_name=True)
+
+    post_id: UUID = Field(alias="postId")
     title: str
     description: str
     tags: Optional[list[str]] = None
-    createdAt: datetime
+    created_at: datetime = Field(alias="createdAt")
 
-    @computed_field
     @property
     def text(self) -> str:
         tags_str = " ".join(self.tags or [])

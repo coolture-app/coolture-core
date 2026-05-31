@@ -1,38 +1,41 @@
+import logging
+import signal
+import threading
 import time
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
-import psycopg2
-from pgvector.psycopg2 import register_vector
+import psycopg
 
 from settings import settings
 
+logger = logging.getLogger("user-embedding-worker")
+
 WEIGHTS: dict[str, float] = {
-    "LIKE":       settings.weight_like,
-    "DISLIKE":    settings.weight_dislike,
+    "LIKE": settings.weight_like,
+    "DISLIKE": settings.weight_dislike,
     "INTERESTED": settings.weight_interested,
     "TAKES_PART": settings.weight_takes_part,
 }
 
 
-def get_db() -> psycopg2.extensions.connection:
-    conn = psycopg2.connect(
-        host=settings.postgres_connect_hostname,
-        port=settings.postgres_connect_port,
-        dbname=settings.postgres_db,
-        user=settings.postgres_user,
-        password=settings.postgres_password,
+def _make_db_pool() -> psycopg.ConnectionPool:
+    conninfo = (
+        f"host={settings.postgres_connect_hostname} "
+        f"port={settings.postgres_connect_port} "
+        f"dbname={settings.postgres_db} "
+        f"user={settings.postgres_user} "
+        f"password={settings.postgres_password}"
     )
-    register_vector(conn)
-    return conn
+    return psycopg.ConnectionPool(conninfo, min_size=1, max_size=2)
 
 
-def run_once() -> None:
-    print("[user-embedding-worker] starting user embedding update run...", flush=True)
+def run_once(db_pool: psycopg.ConnectionPool) -> int:
+    user_data: dict[str, list[tuple[np.ndarray, float]]] = defaultdict(list)
+    upserted = 0
 
-    user_data: dict = defaultdict(list)
-
-    with get_db() as conn:
+    with db_pool.connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -47,14 +50,13 @@ def run_once() -> None:
             )
             for user_id, embedding, interaction_type in cur.fetchall():
                 weight = WEIGHTS.get(interaction_type, 0.0)
-                user_data[user_id].append((np.array(embedding, dtype=np.float32), weight))
+                if weight != 0.0:
+                    user_data[user_id].append((np.array(embedding, dtype=np.float32), weight))
 
-    if not user_data:
-        print("[user-embedding-worker] no interactions with embeddings found, skipping.", flush=True)
-        return
+        if not user_data:
+            logger.info("no interactions with embeddings found, skipping")
+            return 0
 
-    upserted = 0
-    with get_db() as conn:
         with conn.cursor() as cur:
             for user_id, weighted_vecs in user_data.items():
                 vectors = np.array([v for v, _ in weighted_vecs])
@@ -65,7 +67,9 @@ def run_once() -> None:
                     continue
 
                 vector = (vectors * weights[:, np.newaxis]).sum(axis=0) / total_weight
-                vector /= np.linalg.norm(vector) + 1e-9
+                norm = np.linalg.norm(vector)
+                if norm > 1e-9:
+                    vector /= norm
 
                 cur.execute(
                     """
@@ -80,18 +84,44 @@ def run_once() -> None:
                 )
                 upserted += 1
 
-    print(f"[user-embedding-worker] upserted user embeddings for {upserted} users.", flush=True)
+    logger.info("upserted user embeddings for %d users", upserted)
+    return upserted
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="[%(name)s] %(levelname)s %(message)s")
+    logger.info(
+        "starting user-embedding-worker (interval=%d min, weights=%s)",
+        settings.interval_minutes,
+        WEIGHTS,
+    )
+
+    db_pool = _make_db_pool()
+    should_stop = threading.Event()
+
+    def _handle_signal(signum: int, _frame: Any) -> None:
+        logger.info("received %s, shutting down...", signal.Signals(signum).name)
+        should_stop.set()
+
+    signal.signal(signal.SIGTERM, _handle_signal)
+    signal.signal(signal.SIGINT, _handle_signal)
+
     interval = settings.interval_minutes * 60
-    print(f"[user-embedding-worker] running every {settings.interval_minutes} minutes.", flush=True)
-    while True:
+
+    while not should_stop.is_set():
+        run_start = time.monotonic()
         try:
-            run_once()
+            run_once(db_pool)
         except Exception as e:
-            print(f"[user-embedding-worker] run failed: {e}", flush=True)
-        time.sleep(interval)
+            logger.error("run failed: %s", e, exc_info=True)
+
+        elapsed = time.monotonic() - run_start
+        sleep_time = max(interval - elapsed, 5)
+        logger.debug("sleeping for %.1f seconds", sleep_time)
+        should_stop.wait(timeout=sleep_time)
+
+    db_pool.close()
+    logger.info("shutdown complete")
 
 
 if __name__ == "__main__":

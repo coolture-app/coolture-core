@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     postgres_connect_hostname: str = "localhost"
     postgres_connect_port: int = 5430
     postgres_db: str = "coolture_db"
-    postgres_user: str = "admin"
-    postgres_password: str = "admin"
+    postgres_user: str
+    postgres_password: str
 
     embedding_model: str = "all-mpnet-base-v2"
 
