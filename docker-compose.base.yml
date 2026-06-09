@@ -73,9 +73,12 @@ services:
       KC_DB_URL: jdbc:postgresql://${POSTGRES_INTERNAL_HOSTNAME:-postgres}:${POSTGRES_INTERNAL_PORT:-5432}/${KEYCLOAK_DB_NAME:-keycloak}
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
+      KC_THEME_CACHE_THEMES: "false"
+      KC_THEME_CACHE_TEMPLATES: "false"
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./keycloak/export:/tmp/export
+      - ./keycloak/themes:/opt/keycloak/themes
     ports:
       - ${KEYCLOAK_HOST_PORT:-8180}:${KEYCLOAK_INTERNAL_PORT:-8180}
       - ${KEYCLOAK_MANAGEMENT_HOST_PORT:-8181}:${KEYCLOAK_MANAGEMENT_INTERNAL_PORT:-8181}

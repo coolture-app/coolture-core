@@ -1,5 +1,6 @@
 realm: "$(env:KEYCLOAK_REALM)"
 enabled: true
+loginTheme: coolture
 
 # Source: https://skycloak.io/blog/keycloak-session-timeout-configuration/
 

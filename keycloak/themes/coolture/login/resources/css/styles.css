@@ -1,0 +1,319 @@
+/* Import fonts from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --color-primary: #111111;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-surface: #ffffff;
+  --color-text: #111111;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-background: #fafafa;
+  --color-danger: #ef4444;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --font-sans: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Bebas Neue', sans-serif;
+}
+
+/* Page Background Reset */
+body, 
+.login-pf, 
+.pf-c-login {
+  background-color: var(--color-background) !important;
+  background-image: none !important;
+  font-family: var(--font-sans) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  color: var(--color-text) !important;
+}
+
+/* Deactivate PatternFly 4 Grid Layout */
+.pf-c-login {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  grid-template-columns: none !important;
+  grid-template-rows: none !important;
+  grid-template-areas: none !important;
+}
+
+/* Container / Main Card centering & width */
+#kc-container-wrapper, 
+.pf-c-login__container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  max-width: 620px !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* Header Brand / Title COOLTURE */
+#kc-header, 
+.pf-c-login__header {
+  text-align: center !important;
+  margin-bottom: 24px !important;
+  grid-area: auto !important;
+  width: 100% !important;
+}
+
+#kc-header-wrapper, 
+.pf-c-login__header-brand {
+  font-size: 0 !important; /* Hide original text (coolture-dev) */
+  display: block !important;
+  text-align: center !important;
+}
+
+#kc-header-wrapper::before,
+.pf-c-login__header-brand::before {
+  content: "COOLTURE" !important;
+  font-family: var(--font-display) !important;
+  font-size: 56px !important; /* Huge Bebas Neue logo */
+  font-weight: 700 !important;
+  color: var(--color-primary) !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+/* Hide default Keycloak logo banner */
+.login-pf-brand, 
+.pf-c-login__header-brand img {
+  display: none !important;
+}
+
+/* Main Card Override - Clean White Premium look */
+.card-pf, 
+.pf-c-login__main {
+  background: var(--color-surface) !important;
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 20px 48px !important; /* Shorter vertically, wider padding horizontally */
+  width: 100% !important;
+  max-width: 600px !important; /* Much wider card */
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  grid-area: auto !important;
+}
+
+/* Card Heading (Sign in to your account) */
+#kc-page-title, 
+.pf-c-login__main-header-title {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: var(--color-primary) !important;
+  margin-top: 0 !important;
+  margin-bottom: 12px !important; /* Shorter spacing */
+  text-align: center !important;
+}
+
+/* Forms & Fields */
+.form-group, 
+.pf-c-form__group {
+  margin-bottom: 10px !important; /* Shorter spacing */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+label, 
+.control-label, 
+.pf-c-form__group-label-text {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--color-text-secondary) !important;
+  margin-bottom: 6px !important;
+  text-align: left !important;
+}
+
+/* Text Inputs styling */
+.form-control, 
+.pf-c-form-control {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-text) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  padding: 10px 16px !important; /* Shorter inputs */
+  height: auto !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.form-control:focus, 
+.pf-c-form-control:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+  outline: none !important;
+}
+
+/* Buttons */
+.btn-primary, 
+.pf-c-button.pf-m-primary {
+  background-color: var(--color-accent) !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  color: #ffffff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 11px 24px !important; /* Shorter buttons */
+  cursor: pointer !important;
+  width: 100% !important;
+  transition: background-color 0.15s ease !important;
+  text-align: center !important;
+  display: block !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+.btn-primary:hover, 
+.pf-c-button.pf-m-primary:hover {
+  background-color: var(--color-accent-hover) !important;
+}
+
+.btn-primary:focus, 
+.pf-c-button.pf-m-primary:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Secondary Button / Actions */
+.btn-secondary, 
+.pf-c-button.pf-m-secondary {
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--color-primary) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease !important;
+  text-align: center !important;
+}
+
+.btn-secondary:hover, 
+.pf-c-button.pf-m-secondary:hover {
+  background-color: var(--color-background) !important;
+  border-color: var(--color-text-secondary) !important;
+}
+
+/* Links */
+a, 
+.pf-c-button.pf-m-link {
+  color: var(--color-accent) !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+}
+
+a:hover, 
+.pf-c-button.pf-m-link:hover {
+  text-decoration: underline !important;
+  color: var(--color-accent-hover) !important;
+}
+
+/* Registration section */
+#kc-registration, 
+.pf-c-login__main-footer-band {
+  margin-top: 16px !important; /* Shorter spacing */
+  text-align: center !important;
+  font-size: 14px !important;
+  color: var(--color-text-secondary) !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Alert / Errors */
+.alert, 
+.pf-c-alert {
+  border-radius: var(--radius-md) !important;
+  padding: 12px 16px !important;
+  margin-bottom: 20px !important;
+  font-size: 14px !important;
+  border: 1px solid transparent !important;
+}
+
+.alert-error, 
+.pf-c-alert.pf-m-danger {
+  background-color: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+  color: var(--color-danger) !important;
+}
+
+.alert-info, 
+.pf-c-alert.pf-m-info {
+  background-color: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: var(--color-accent) !important;
+}
+
+.alert .kc-feedback-text, 
+.pf-c-alert__title {
+  font-weight: 500 !important;
+}
+
+.pf-c-alert__icon {
+  margin-right: 8px !important;
+  display: inline-block !important;
+}
+
+/* Checkboxes (Remember me) */
+.checkbox, 
+.pf-c-check {
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+
+.login-pf .checkbox input[type="checkbox"],
+.login-pf .checkbox label input,
+.pf-c-check__input,
+input[type="checkbox"] {
+  position: absolute !important;
+  margin: 0 !important; /* Reset shorthand first */
+  margin-left: -20px !important; /* Set specific left margin */
+  margin-top: 3px !important;
+  width: 16px !important;
+  height: 16px !important;
+  cursor: pointer !important;
+  accent-color: var(--color-accent) !important;
+}
+
+.login-pf .checkbox label,
+.pf-c-check__label,
+.checkbox label {
+  padding-left: 20px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  color: var(--color-text-secondary) !important;
+  display: inline-block !important;
+  position: relative !important;
+}
+
+/* Footer info */
+#kc-info, 
+.pf-c-login__main-footer {
+  margin-top: 16px !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding-top: 16px !important;
+  grid-area: auto !important;
+}
