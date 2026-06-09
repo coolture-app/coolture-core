@@ -513,6 +513,37 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /posts/recommendations:
+    get:
+      tags: [Posts]
+      summary: Get personalized post recommendations
+      description: |
+        Returns posts ordered by cosine similarity to the authenticated user's vector.
+        The user vector is derived from the user's reactions and participations, updated periodically.
+        Uses the same cursor pagination as the feed. Returns an empty list if no user vector exists yet.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated list of recommended posts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, page]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PostCard'
+                  page:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /posts/{postId}:
     get:
       tags: [Posts]

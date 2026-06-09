@@ -10,6 +10,37 @@ import org.springframework.data.repository.query.Param;
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
   /**
+   * Returns posts ordered by cosine similarity
+   * Only posts with an existing embedding are returned.
+   * Similarity is the sort key but not stored in the cursor; float ties are negligible in practice.
+   */
+  @Query(
+      value =
+          """
+          SELECT p.*
+          FROM posts p
+          JOIN post_embeddings pe ON pe.post_id = p.id
+          JOIN user_embeddings ue ON ue.user_id = CAST(:userId AS uuid)
+          WHERE p.deleted_at IS NULL
+            AND p.visibility = 'PUBLIC'
+            AND p.author_id != CAST(:userId AS uuid)
+            AND NOT EXISTS (SELECT 1 FROM post_reactions pr WHERE pr.post_id = p.id AND pr.user_id = CAST(:userId AS uuid))
+            AND NOT EXISTS (SELECT 1 FROM post_participations pp WHERE pp.post_id = p.id AND pp.user_id = CAST(:userId AS uuid))
+            AND (CAST(:cursorCreatedAt AS timestamptz) IS NULL
+                 OR p.created_at < CAST(:cursorCreatedAt AS timestamptz)
+                 OR (p.created_at = CAST(:cursorCreatedAt AS timestamptz)
+                     AND p.id < CAST(:cursorId AS uuid)))
+          ORDER BY (pe.embedding <=> ue.embedding) ASC, p.created_at DESC, p.id DESC
+          LIMIT :limit
+          """,
+      nativeQuery = true)
+  List<Post> findRecommendations(
+      @Param("userId") UUID userId,
+      @Param("cursorCreatedAt") Instant cursorCreatedAt,
+      @Param("cursorId") UUID cursorId,
+      @Param("limit") int limit);
+
+  /**
    * Feed query with all optional filters and cursor pagination on (created_at, id).
    *
    * <p>Tags filter uses PostgreSQL's && (array overlap) operator.

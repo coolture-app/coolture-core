@@ -132,8 +132,25 @@ services:
       IMPORT_VAR_SUBSTITUTION_ENABLED: "true" # basic syntax is $(var_origin:VAR_NAME)
     restart: "no" # one-shot
 
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    hostname: ${RABBITMQ_INTERNAL_HOSTNAME:-rabbitmq}
+    ports:
+      - "${RABBITMQ_HOST_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_HOST_PORT:-15672}:15672"
+    networks:
+      - devnet
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   postgres:
-    image: postgis/postgis:18-3.6-alpine
+    build: ./db
     platform: linux/amd64
     hostname: ${POSTGRES_INTERNAL_HOSTNAME:-postgres}
     env_file: .env
@@ -144,6 +161,7 @@ services:
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak}
       KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
       KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak}
+      EMBEDDING_VECTOR_DIM: ${EMBEDDING_VECTOR_DIM:-768}
     volumes:
       # from postgres 18, data is stored in /var/lib/postgresql instead of /var/lib/postgresql/data
       - postgres_data:/var/lib/postgresql

@@ -18,6 +18,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     command: sleep infinity # Keep the container running
 
 volumes:

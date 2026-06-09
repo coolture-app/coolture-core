@@ -35,6 +35,8 @@ import pl.coolture.restapi.common.config.storage.PresignService;
 import pl.coolture.restapi.post.domain.PostType;
 import pl.coolture.restapi.post.domain.PostStatus;
 import pl.coolture.restapi.post.domain.PostVisibility;
+import org.springframework.context.ApplicationEventPublisher;
+import pl.coolture.restapi.embedding.domain.PostEmbeddingMessage;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +57,28 @@ public class PostService {
   private final ReactionService reactionService;
   private final ParticipationService participationService;
   private final UserAvatarService userAvatarService;
+  private final ApplicationEventPublisher eventPublisher;
+
+  public CursorPage<PostCardDto> getRecommendations(UUID callerId, String cursor, int limit) {
+    var payload = cursorCodec.decode(cursor);
+
+    List<Post> rows = postRepository.findRecommendations(
+        callerId,
+        payload.map(CursorPayload::createdAt).orElse(null),
+        payload.map(CursorPayload::id).orElse(null),
+        limit + 1);
+
+    Map<UUID, MediaResourceDto> avatars = userAvatarService.resolveThumbnails(
+        rows.stream().map(p -> p.getAuthor().getId()).toList());
+
+    List<PostCardDto> dtos = rows.stream()
+        .map(p -> postMapper.toCard(p, avatars.get(p.getAuthor().getId())))
+        .toList();
+
+    enrich(dtos, callerId);
+    return CursorPage.of(dtos, limit, PostCardDto::getId, PostCardDto::getCreatedAt, cursorCodec);
+  }
+
   private final PresignService presignService;
 
   /**
@@ -162,6 +186,9 @@ public class PostService {
     attachMedia(post, callerId, req.mediaIds(), req.coverMediaId());
 
     post = postRepository.save(post);
+    eventPublisher.publishEvent(
+        new PostEmbeddingMessage(post.getId(), post.getTitle(), post.getDescription(),
+            post.getTags() != null ? List.of(post.getTags()) : List.of(), post.getCreatedAt()));
     return postMapper.toDetail(
             post,
             userAvatarService.resolveThumbnail(post.getAuthor().getId()));
