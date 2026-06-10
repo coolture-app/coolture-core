@@ -59,6 +59,15 @@ spring:
               filters:
                 - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
                 - RemoveRequestHeader=Cookie
+            - id: nominatim
+              uri: http://${NOMINATIM_CONNECT_HOSTNAME:localhost}:${NOMINATIM_CONNECT_PORT:8082}
+              predicates:
+                - Path=/nominatim/**
+              filters:
+                - StripPrefix=1
+                - RemoveResponseHeader=Access-Control-Allow-Origin
+                - RemoveResponseHeader=Access-Control-Allow-Credentials
+                - RemoveRequestHeader=Cookie
 
 app:
   keycloak:
