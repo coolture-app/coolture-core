@@ -518,7 +518,7 @@ def parse_event(html_content: str) -> dict:
 # trojmiasto.pl serves Polish events; map the common ISO-3166 alpha-2 codes
 # returned by Nominatim to the alpha-3 codes the REST API expects (countryCode
 # is constrained to exactly 3 characters).
-_COUNTRY_ALPHA3 = {"pl": "POL", "de": "DEU"}
+_COUNTRY_ALPHA3 = {"pl": "POL"}
 
 # Last-resort postal codes per Trójmiasto city, used only when neither the
 # event page nor Nominatim provides one (postalCode is @NotBlank on the API).
