@@ -66,7 +66,8 @@ public class SecurityConfig {
                                 "/api/swagger-ui.html",
                                 "/api/swagger-ui/**",
                                 "/api/v3/api-docs/**",
-                                "/api/api-docs/**"
+                                "/api/api-docs/**",
+                                "/nominatim/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*", "/api/posts/*/comments").permitAll()

@@ -377,6 +377,8 @@ def _ingest_today_events(events: list[dict], today_iso: str, now: datetime) -> d
     failed = 0
     skipped_duplicate = 0
     skipped_past_or_invalid = 0
+    with_image = 0
+    with_location = 0
 
     for event in events:
         payload = _build_post_payload(event, now)
@@ -391,6 +393,21 @@ def _ingest_today_events(events: list[dict], today_iso: str, now: datetime) -> d
         if event_key in existing_keys:
             skipped_duplicate += 1
             continue
+
+        # Enrich from the event detail page: cover image + geocoded location.
+        details = fetch_event_details(event.get("source_url"))
+
+        location = build_location_payload(event, details)
+        if location is not None:
+            payload["type"] = "OFFLINE"
+            payload["location"] = location
+            with_location += 1
+
+        media_id = upload_cover_image(api_base_url, token, details.get("image_url"))
+        if media_id:
+            payload["mediaIds"] = [media_id]
+            payload["coverMediaId"] = media_id
+            with_image += 1
 
         headers = {
             "Authorization": f"Bearer {token}",
@@ -428,17 +445,22 @@ def _ingest_today_events(events: list[dict], today_iso: str, now: datetime) -> d
             )
 
     log.info(
-        "Ingest complete: inserted=%d failed=%d duplicate=%d invalid=%d",
+        "Ingest complete: inserted=%d failed=%d duplicate=%d invalid=%d "
+        "with_image=%d with_location=%d",
         inserted,
         failed,
         skipped_duplicate,
         skipped_past_or_invalid,
+        with_image,
+        with_location,
     )
     return {
         "inserted": inserted,
         "failed": failed,
         "skipped_duplicate": skipped_duplicate,
         "skipped_past_or_invalid": skipped_past_or_invalid,
+        "with_image": with_image,
+        "with_location": with_location,
     }
 
 
@@ -453,6 +475,9 @@ def parse_event(html_content: str) -> dict:
     price_el = soup.select_one(".event__price__info, .event__price__free")
     date_el = soup.select_one(".event__item__date")
     location_el = soup.select_one(".event__item__location")
+    city_el = soup.select_one(".event__item__location__city")
+    venue_el = soup.select_one(".event__item__location__place")
+    img_el = soup.select_one(".event__item__img img")
     link_el = soup.select_one(".event__item__title[href]")
 
     raw_date = _clean_text(date_el.get_text(" ", strip=True) if date_el else "")
@@ -460,6 +485,10 @@ def parse_event(html_content: str) -> dict:
     parsed_date = _parse_date_from_iso(date_content) or _parse_date_from_label(raw_date)
     date_label = _clean_text(f"{date_content} {raw_date}") or "No date"
     href = link_el.get("href", "") if link_el else ""
+
+    # The city span carries a trailing comma in the markup, e.g. "Gdańsk,".
+    city = _clean_text(city_el.get_text(strip=True) if city_el else "").rstrip(",").strip()
+    venue = _clean_text(venue_el.get_text(strip=True) if venue_el else "")
 
     return {
         "name": _clean_text(name_el.get_text(strip=True) if name_el else "Unknown"),
@@ -469,6 +498,9 @@ def parse_event(html_content: str) -> dict:
         "where": _clean_text(
             location_el.get_text(" ", strip=True) if location_el else "No location"
         ),
+        "city": city or None,
+        "venue": venue or None,
+        "thumb_image_url": _clean_text(img_el.get("src") if img_el else "") or None,
         "source_url": (
             href
             if href.startswith("http")
@@ -477,6 +509,302 @@ def parse_event(html_content: str) -> dict:
             else None
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# Event detail enrichment: cover image + geocoded location
+# ---------------------------------------------------------------------------
+
+# trojmiasto.pl serves Polish events; map the common ISO-3166 alpha-2 codes
+# returned by Nominatim to the alpha-3 codes the REST API expects (countryCode
+# is constrained to exactly 3 characters).
+_COUNTRY_ALPHA3 = {"pl": "POL"}
+
+# Last-resort postal codes per Trójmiasto city, used only when neither the
+# event page nor Nominatim provides one (postalCode is @NotBlank on the API).
+_CITY_FALLBACK_POSTCODE = {
+    "gdańsk": "80-001",
+    "gdansk": "80-001",
+    "gdynia": "81-001",
+    "sopot": "81-701",
+}
+
+_DEFAULT_POSTCODE = "00-000"
+
+_HTTP_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (compatible; coolture-scrapper/1.0; +https://www.trojmiasto.pl)"
+    )
+}
+
+
+def _extract_event_jsonld(soup: BeautifulSoup) -> dict:
+    """Returns the schema.org Event JSON-LD block from a detail page, or {}."""
+    for script in soup.select('script[type="application/ld+json"]'):
+        raw = script.string or script.get_text() or ""
+        if not raw.strip():
+            continue
+        try:
+            data = json.loads(raw)
+        except (ValueError, TypeError):
+            continue
+        candidates = data if isinstance(data, list) else [data]
+        for entry in candidates:
+            if isinstance(entry, dict) and "Event" in str(entry.get("@type", "")):
+                return entry
+    return {}
+
+
+def _first_str(value) -> str:
+    """schema.org image fields may be a string, list, or object — pick a URL string."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        for item in value:
+            picked = _first_str(item)
+            if picked:
+                return picked
+    if isinstance(value, dict):
+        return _first_str(value.get("url") or value.get("contentUrl") or "")
+    return ""
+
+
+def fetch_event_details(source_url: str | None) -> dict:
+    """Fetches an event detail page and extracts its cover image URL and address.
+
+    Returns a dict with keys: image_url, street, postal_code, city, country_code,
+    venue, is_online. Network/parse failures degrade to empty fields rather than
+    raising, so ingestion of the base post is never blocked.
+    """
+    details: dict = {
+        "image_url": None,
+        "street": None,
+        "postal_code": None,
+        "city": None,
+        "country_code": None,
+        "venue": None,
+        "is_online": False,
+    }
+    if not source_url:
+        return details
+
+    try:
+        resp = requests.get(source_url, headers=_HTTP_HEADERS, timeout=20)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        log.warning("Failed to fetch event detail page %s: %s", source_url, exc)
+        return details
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    og_image = soup.select_one('meta[property="og:image"], meta[name="twitter:image"]')
+    if og_image and og_image.get("content"):
+        details["image_url"] = _clean_text(og_image.get("content")) or None
+
+    ld = _extract_event_jsonld(soup)
+    if ld:
+        if not details["image_url"]:
+            details["image_url"] = _first_str(ld.get("image")) or None
+        details["is_online"] = "online" in str(ld.get("eventAttendanceMode", "")).lower()
+
+        location = ld.get("location")
+        if isinstance(location, list):
+            location = location[0] if location else None
+        if isinstance(location, dict):
+            details["venue"] = _clean_text(location.get("name", "")) or None
+            address = location.get("address")
+            if isinstance(address, dict):
+                details["street"] = _clean_text(address.get("streetAddress", "")) or None
+                details["postal_code"] = _clean_text(address.get("postalCode", "")) or None
+                details["city"] = _clean_text(address.get("addressLocality", "")) or None
+                country = _clean_text(address.get("addressCountry", ""))
+                details["country_code"] = country or None
+
+    return details
+
+
+def _nominatim_search(params: dict) -> dict | None:
+    """Single-result Nominatim forward-geocode. Returns the raw hit dict or None."""
+    base = os.getenv("SCRAPPER_NOMINATIM_BASE_URL", "http://nominatim:8080").rstrip("/")
+    query = {**params, "format": "jsonv2", "addressdetails": 1, "limit": 1}
+    try:
+        resp = requests.get(
+            f"{base}/search", params=query, headers=_HTTP_HEADERS, timeout=20
+        )
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        log.warning("Nominatim request failed (%s): %s", params, exc)
+        return None
+    data = resp.json()
+    return data[0] if isinstance(data, list) and data else None
+
+
+def _geocode(street: str | None, city: str | None, venue: str | None) -> dict | None:
+    """Geocodes an event location, preferring a precise venue/address over the city centre.
+
+    trojmiasto venues are usually named OSM points of interest, so a
+    "venue, city" query resolves far more precisely than the noisy JSON-LD
+    streetAddress (which repeats the venue and city). Attempts run most-precise
+    first and stop at the first hit; the bare-city query is the coarse fallback.
+
+    Returns the matched Nominatim hit (with `lat`, `lon`, `address`) or None.
+    """
+    attempts: list[dict] = []
+    if venue and city:
+        attempts.append({"q": f"{venue}, {city}, Poland"})
+    if street and city:
+        attempts.append({"street": street, "city": city, "country": "Poland"})
+        attempts.append({"q": f"{street}, {city}, Poland"})
+    if city:
+        # City-centre fallback — coarse coordinates when the exact venue misses.
+        attempts.append({"city": city, "country": "Poland"})
+
+    for params in attempts:
+        hit = _nominatim_search(params)
+        if hit and hit.get("lat") and hit.get("lon"):
+            return hit
+    return None
+
+
+def build_location_payload(event: dict, details: dict) -> dict | None:
+    """Builds an EventLocationDto-shaped dict from detail data + Nominatim geocoding.
+
+    Returns None when the event is online or cannot be geolocated, signalling the
+    caller to keep the post ONLINE.
+    """
+    if details.get("is_online"):
+        return None
+
+    # The listing's city span ("Gdańsk") is clean; trojmiasto's JSON-LD
+    # addressLocality is often polluted with the venue/street, so prefer the listing.
+    city = event.get("city") or details.get("city")
+    venue = details.get("venue") or event.get("venue")
+    street = details.get("street")
+
+    hit = _geocode(street, city, venue)
+    if hit is None:
+        return None
+
+    try:
+        latitude = float(hit["lat"])
+        longitude = float(hit["lon"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+    address = hit.get("address", {}) if isinstance(hit.get("address"), dict) else {}
+
+    # Prefer the city Nominatim normalised; fall back to scraped values.
+    resolved_city = (
+        address.get("city")
+        or address.get("town")
+        or address.get("village")
+        or address.get("municipality")
+        or city
+    )
+    if not resolved_city:
+        return None
+
+    country_code = _COUNTRY_ALPHA3.get(
+        str(address.get("country_code", "pl")).lower(), "POL"
+    )
+
+    postal_code = (
+        details.get("postal_code")
+        or address.get("postcode")
+        or _CITY_FALLBACK_POSTCODE.get(resolved_city.strip().lower())
+        or _DEFAULT_POSTCODE
+    )
+
+    # Prefer Nominatim's normalised street parts; the scraped JSON-LD street is
+    # often noisy (venue + city repeated). Fall back to the scraped value.
+    road = _clean_text(address.get("road", ""))
+    house = _clean_text(address.get("house_number", ""))
+    nominatim_street = _clean_text(f"{road} {house}") or None
+    street = nominatim_street or street
+
+    location = {
+        "countryCode": country_code,
+        "city": _truncate(resolved_city, 128),
+        "postalCode": _truncate(postal_code, 16),
+        "coordinates": {"latitude": latitude, "longitude": longitude},
+    }
+    if venue:
+        location["venueName"] = _truncate(venue, 64)
+    if street:
+        location["street"] = _truncate(street, 128)
+    return location
+
+
+def _allowed_image_mime(content_type: str, url: str) -> str | None:
+    """Returns an API-accepted image MIME type for the response, or None."""
+    base = (content_type or "").split(";", 1)[0].strip().lower()
+    if base in _IMAGE_MIME_BY_EXT.values():
+        return base
+    # Fall back to the URL extension when the server sends a generic type.
+    lowered = url.lower()
+    for ext, mime in _IMAGE_MIME_BY_EXT.items():
+        if lowered.split("?", 1)[0].endswith(ext):
+            return mime
+    return None
+
+
+_IMAGE_MIME_BY_EXT = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".avif": "image/avif",
+}
+
+
+def upload_cover_image(api_base_url: str, token: str, image_url: str | None) -> str | None:
+    """Downloads `image_url` and uploads it as an EVENT_COVER media via the REST API.
+
+    Uses the admin server-side direct-upload endpoint (the bot holds COOLTURE_ADMIN),
+    which avoids presigned-URL round trips. Returns the new media id or None on failure.
+    """
+    if not image_url:
+        return None
+
+    try:
+        img_resp = requests.get(image_url, headers=_HTTP_HEADERS, timeout=30)
+        img_resp.raise_for_status()
+    except requests.exceptions.RequestException as exc:
+        log.warning("Failed to download cover image %s: %s", image_url, exc)
+        return None
+
+    mime = _allowed_image_mime(img_resp.headers.get("Content-Type", ""), image_url)
+    if mime is None:
+        log.warning("Skipping cover image with unsupported type: %s", image_url)
+        return None
+
+    ext = next((e for e, m in _IMAGE_MIME_BY_EXT.items() if m == mime), ".jpg")
+    filename = f"event-cover{ext}"
+
+    try:
+        resp = requests.post(
+            f"{api_base_url}/media/admin/uploads/direct",
+            headers={"Authorization": f"Bearer {token}"},
+            params={"purpose": "EVENT_COVER"},
+            files={"file": (filename, img_resp.content, mime)},
+            timeout=30,
+        )
+    except requests.exceptions.RequestException as exc:
+        log.warning("Cover image upload request failed for %s: %s", image_url, exc)
+        return None
+
+    if resp.status_code != 201:
+        log.warning(
+            "Cover image upload failed status=%s body=%s",
+            resp.status_code,
+            resp.text[:300],
+        )
+        return None
+
+    media_id = resp.json().get("id")
+    if media_id:
+        log.info("Uploaded cover image %s -> media %s", image_url, media_id)
+    return media_id
 
 
 def _collect_event_html() -> list[str]:
