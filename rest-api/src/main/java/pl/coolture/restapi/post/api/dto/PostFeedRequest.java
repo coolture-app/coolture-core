@@ -68,9 +68,9 @@ public class PostFeedRequest {
     /**
      * Filter posts in respect to caller's participation status
      * Require auth - without valid JWT results in HTTP 401
-     */
-    @ArraySchema(schema = @Schema(type = "string", pattern = "interested|takes_part"))
-    private List<@Pattern(regexp = "interested|takes_part") String> participationTypes;
+     */    
+    @ArraySchema(schema = @Schema(type = "string", pattern = "INTERESTED|TAKES_PART"))
+    private List<@Pattern(regexp = "INTERESTED|TAKES_PART") String> participationTypes;
 
     /**
      * Filter posts in respect to caller's reaction
