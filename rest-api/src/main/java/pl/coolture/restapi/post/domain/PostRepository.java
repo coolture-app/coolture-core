@@ -96,8 +96,8 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
                  OR (p.created_at = CAST(:cursorCreatedAt AS timestamptz)
                      AND p.id < CAST(:cursorId AS uuid)))
             ORDER BY
-            CASE WHEN :sortBy = 'popular' THEN p.positive_reaction_count END DESC,
-            CASE WHEN :sortBy = 'upcoming' THEN p.starts_at END ASC,
+            CASE WHEN :sortBy = 'POPULAR' THEN p.positive_reaction_count END DESC,
+            CASE WHEN :sortBy = 'UPCOMING' THEN p.starts_at END ASC,
             p.created_at DESC,
             p.id DESC
           LIMIT :limit
