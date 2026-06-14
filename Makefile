@@ -42,6 +42,7 @@ I_GARAGE_UI_HOST := s3garage-ui
 I_POSTGRES_HOST  := postgres
 I_RABBITMQ_HOST  := rabbitmq
 I_SCRAPPER_HOST  := scrapper
+I_NOMINATIM_HOST := nominatim
 
 # Internal (Docker) ports
 # These are the ports on which services listen on inside the Docker network
@@ -57,6 +58,8 @@ I_GATEWAY_PORT       := 8080
 I_REST_API_PORT      := 8081
 I_KEYCLOAK_PORT      := 8180
 I_KEYCLOAK_MGMT_PORT := 8181
+I_NOMINATIM_PORT     := 8080
+
 
 # Host ports
 # These are the ports exposed on the host
@@ -74,6 +77,7 @@ H_GATEWAY_PORT       ?= 8080
 H_REST_API_PORT      ?= 8081
 H_KEYCLOAK_PORT      := 8180
 H_KEYCLOAK_MGMT_PORT := 8181
+H_NOMINATIM_PORT     := 8082
 
 # Keycloak bot service-account secret.
 # Substituted into keycloak/import/realm.json at realm import time AND used by
@@ -119,11 +123,13 @@ ifeq ($(ENV),local)
 	C_GARAGE_HOST   := localhost
 	C_POSTGRES_HOST := localhost
 	C_RABBITMQ_HOST := localhost
+	C_NOMINATIM_HOST := localhost
 
 	C_KEYCLOAK_PORT := $(H_KEYCLOAK_PORT)
 	C_POSTGRES_PORT := $(H_POSTGRES_PORT)
 	C_GARAGE_PORT   := $(H_GARAGE_API_PORT)
 	C_RABBITMQ_PORT := $(H_RABBITMQ_PORT)
+	C_NOMINATIM_PORT := $(H_NOMINATIM_PORT)
 else ifeq ($(ENV),dev)
 	# running in dev container
 	C_REST_API_HOST := localhost			# developed services see each other on locahost
@@ -131,11 +137,13 @@ else ifeq ($(ENV),dev)
 	C_GARAGE_HOST   := $(I_GARAGE_HOST)
 	C_POSTGRES_HOST := $(I_POSTGRES_HOST)
 	C_RABBITMQ_HOST := $(I_RABBITMQ_HOST)
+	C_NOMINATIM_HOST := $(I_NOMINATIM_HOST)
 
 	C_KEYCLOAK_PORT := $(I_KEYCLOAK_PORT)
 	C_POSTGRES_PORT := $(I_POSTGRES_PORT)
 	C_GARAGE_PORT   := $(I_GARAGE_API_PORT)
 	C_RABBITMQ_PORT := $(I_RABBITMQ_PORT)
+	C_NOMINATIM_PORT := $(I_NOMINATIM_PORT)
 else
 	# Spring is inside Docker with all services
 	C_REST_API_HOST := $(I_REST_API_HOST)
@@ -143,12 +151,15 @@ else
 	C_GARAGE_HOST   := $(I_GARAGE_HOST)
 	C_POSTGRES_HOST := $(I_POSTGRES_HOST)
 	C_RABBITMQ_HOST := $(I_RABBITMQ_HOST)
+	C_NOMINATIM_HOST := $(I_NOMINATIM_HOST)
 
 	C_KEYCLOAK_PORT := $(I_KEYCLOAK_PORT)
 	C_POSTGRES_PORT := $(I_POSTGRES_PORT)
 	C_GARAGE_PORT   := $(I_GARAGE_API_PORT)
 	C_RABBITMQ_PORT := $(I_RABBITMQ_PORT)
+	C_NOMINATIM_PORT := $(I_NOMINATIM_PORT)
 endif
+
 
 .PHONY: help env
 
@@ -184,6 +195,8 @@ env:
 	echo "KEYCLOAK_CONNECT_PORT=$(C_KEYCLOAK_PORT)"; \
 	echo "POSTGRES_CONNECT_PORT=$(C_POSTGRES_PORT)"; \
 	echo "GARAGE_API_CONNECT_PORT=$(C_GARAGE_PORT)"; \
+	echo "NOMINATIM_CONNECT_HOSTNAME=$(C_NOMINATIM_HOST)"; \
+	echo "NOMINATIM_CONNECT_PORT=$(C_NOMINATIM_PORT)"; \
 	echo ""; \
 	echo "RABBITMQ_CONNECT_HOSTNAME=$(C_RABBITMQ_HOST)"; \
 	echo "RABBITMQ_CONNECT_PORT=$(C_RABBITMQ_PORT)"; \
@@ -197,6 +210,7 @@ env:
 	echo "RABBITMQ_INTERNAL_HOSTNAME=$(I_RABBITMQ_HOST)"; \
 	echo "POSTGRES_INTERNAL_HOSTNAME=$(I_POSTGRES_HOST)"; \
 	echo "SCRAPPER_INTERNAL_HOSTNAME=$(I_SCRAPPER_HOST)"; \
+	echo "NOMINATIM_INTERNAL_HOSTNAME=$(I_NOMINATIM_HOST)"; \
 	echo ""; \
 	echo "# HOST PORTS"; \
 	echo "GARAGE_API_HOST_PORT=$(H_GARAGE_API_PORT)"; \
@@ -210,6 +224,7 @@ env:
 	echo "RABBITMQ_MANAGEMENT_HOST_PORT=$(H_RABBITMQ_MGMT_PORT)"; \
 	echo "KEYCLOAK_HOST_PORT=$(H_KEYCLOAK_PORT)"; \
 	echo "KEYCLOAK_MANAGEMENT_HOST_PORT=$(H_KEYCLOAK_MGMT_PORT)"; \
+	echo "NOMINATIM_HOST_PORT=$(H_NOMINATIM_PORT)"; \
 	echo ""; \
 	echo "# INTERNAL PORTS"; \
 	echo "GARAGE_API_INTERNAL_PORT=$(I_GARAGE_API_PORT)"; \
@@ -224,6 +239,11 @@ env:
 	echo "REST_API_INTERNAL_PORT=$(I_REST_API_PORT)"; \
 	echo "KEYCLOAK_INTERNAL_PORT=$(I_KEYCLOAK_PORT)"; \
 	echo "KEYCLOAK_MANAGEMENT_INTERNAL_PORT=$(I_KEYCLOAK_MGMT_PORT)"; \
+	echo "NOMINATIM_INTERNAL_PORT=$(I_NOMINATIM_PORT)"; \
+	echo ""; \
+	echo "# Nominatim"; \
+	echo "NOMINATIM_PBF_URL=https://download.geofabrik.de/europe/poland/pomorskie-latest.osm.pbf"; \
+	echo "NOMINATIM_DB_PASSWORD=nominatim_password"; \
 	echo ""; \
 	echo "# Garage S3"; \
 	echo "GARAGE_RPC_SECRET=$(GARAGE_RPC_SECRET)"; \
